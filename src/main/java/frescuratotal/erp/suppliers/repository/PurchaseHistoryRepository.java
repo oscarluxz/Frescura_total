@@ -1,13 +1,13 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
- */
 package frescuratotal.erp.suppliers.repository;
 
-/**
- *
- * @author Usuario
- */
+import frescuratotal.erp.suppliers.model.PurchaseRecord;
+import frescuratotal.erp.suppliers.model.SupplierReliability;
+
+import java.sql.SQLException;
+import java.util.List;
+
+/** Read-only access to the purchase history (deliveries) of each supplier. */
 public interface PurchaseHistoryRepository {
-    
+    List<PurchaseRecord> findBySupplier(int supplierId) throws SQLException;
+    SupplierReliability calculateReliability(int supplierId) throws SQLException;
 }
