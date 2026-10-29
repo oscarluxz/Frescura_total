@@ -34,14 +34,14 @@ public class SupplierReliability {
 
     public String getRating() {
         if (totalLots == 0) {
-            return "NO DATA";
+            return "SIN DATOS";
         }
         double waste = getWastePercentage();
         if (waste <= 5 && rejectedInspections == 0) {
-            return "EXCELLENT";
+            return "EXCELENTE";
         } else if (waste <= 15 && rejectedInspections <= 2) {
-            return "GOOD";
+            return "BUENO";
         }
-        return "RISKY";
+        return "RIESGOSO";
     }
 }

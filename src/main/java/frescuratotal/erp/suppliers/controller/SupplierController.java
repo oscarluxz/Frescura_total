@@ -13,6 +13,7 @@ import java.util.List;
 /**
  * Business rules for suppliers. Validation errors are reported with
  * IllegalArgumentException; database failures with SQLException.
+ * The exception messages are shown to the user, so they are written in Spanish.
  */
 public class SupplierController {
 
@@ -28,7 +29,7 @@ public class SupplierController {
     public int registerSupplier(Supplier supplier) throws SQLException {
         validate(supplier);
         if (supplierRepository.existsByNit(supplier.getNit())) {
-            throw new IllegalArgumentException("A supplier with NIT " + supplier.getNit() + " already exists.");
+            throw new IllegalArgumentException("Ya existe un proveedor con el NIT " + supplier.getNit() + ".");
         }
         return supplierRepository.save(supplier);
     }
@@ -51,7 +52,7 @@ public class SupplierController {
     public Supplier getSupplier(int supplierId) throws SQLException {
         Supplier supplier = supplierRepository.findById(supplierId);
         if (supplier == null) {
-            throw new IllegalArgumentException("Supplier " + supplierId + " not found.");
+            throw new IllegalArgumentException("No se encontró el proveedor " + supplierId + ".");
         }
         return supplier;
     }
@@ -73,7 +74,7 @@ public class SupplierController {
             }
         }
         if (!productExists) {
-            throw new IllegalArgumentException("Product " + productId + " does not exist.");
+            throw new IllegalArgumentException("El producto " + productId + " no existe.");
         }
         supplierRepository.addProductToCatalog(supplierId, productId);
     }
@@ -95,14 +96,15 @@ public class SupplierController {
 
     private void validate(Supplier supplier) {
         if (isBlank(supplier.getBusinessName())) {
-            throw new IllegalArgumentException("Business name is required.");
+            throw new IllegalArgumentException("La razón social es obligatoria.");
         }
         if (!isValidNit(supplier.getNit())) {
-            throw new IllegalArgumentException("Invalid NIT. Use digits and an optional check digit, e.g. 900123456-7");
+            throw new IllegalArgumentException(
+                    "NIT inválido. Use solo dígitos y, opcionalmente, un guion antes del dígito de verificación. Ej: 900123456-7");
         }
         String email = supplier.getEmail();
         if (isBlank(email) || !email.contains("@") || !email.contains(".")) {
-            throw new IllegalArgumentException("A valid email is required.");
+            throw new IllegalArgumentException("Se requiere un correo electrónico válido.");
         }
     }
 
