@@ -6,8 +6,10 @@ package com.frescuratotal.erp.sales.repository;
 
 import com.frescuratotal.erp.common.DatabaseConnection;
 import com.frescuratotal.erp.sales.model.Customer;
+import com.frescuratotal.erp.sales.model.CustomerType;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -40,7 +42,30 @@ public class CustomerRepositoryImpl implements CustomerRepository {
 
     @Override
     public Customer findById(int id) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        String sql = "SELECT * FROM clientes WHERE id_cliente = ?";
+        
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return new Customer(
+                    rs.getInt("id_cliente"),
+                    rs.getString("nombre"),
+                    rs.getString("documento"),
+                    rs.getString("email"),
+                    rs.getString("telefono"),
+                    rs.getString("direccion"),
+                    CustomerType.fromDbId(rs.getInt("id_tipo"))
+                );   
+            }
+            
+        } catch (SQLException e) {
+           System.out.println("Error find customer: " + e.getMessage());
+        }
+        return null;
     }
 
     @Override
