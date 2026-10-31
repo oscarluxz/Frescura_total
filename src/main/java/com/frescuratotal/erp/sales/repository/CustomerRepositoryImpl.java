@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -70,8 +71,35 @@ public class CustomerRepositoryImpl implements CustomerRepository {
 
     @Override
     public List<Customer> findAll() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        String sql = "SELECT * FROM clientes";
+        
+        List<Customer> customers = new ArrayList<>();
+        
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {            
+            
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Customer customer = new Customer(
+                    rs.getInt("id_cliente"),
+                    rs.getString("nombre"),
+                    rs.getString("documento"),
+                    rs.getString("email"),
+                    rs.getString("telefono"),
+                    rs.getString("direccion"),
+                    CustomerType.fromDbId(rs.getInt("id_tipo"))
+                );
+                customers.add(customer);
+            }
+            
+        } catch (SQLException e) {
+           System.out.println("Error find customers: " + e.getMessage());
+        }
+        return customers;
+        
     }
+    
 
     @Override
     public void update(Customer customer) {
