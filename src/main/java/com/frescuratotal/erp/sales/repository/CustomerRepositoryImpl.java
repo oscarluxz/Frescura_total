@@ -103,12 +103,44 @@ public class CustomerRepositoryImpl implements CustomerRepository {
 
     @Override
     public void update(Customer customer) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        String sql = "UPDATE clientes SET nombre = ?, documento = ?, email = ?, "
+                   + "telefono = ?, direccion = ?, id_tipo = ? WHERE id_cliente = ?";
+        
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {            
+            
+            ps.setString(1, customer.getName());
+            ps.setString(2, customer.getDocument());
+            ps.setString(3, customer.getEmail());
+            ps.setString(4, customer.getPhone());
+            ps.setString(5, customer.getAddress());
+            ps.setInt(6, customer.getCustomerType().getDbId());
+            ps.setInt(7, customer.getId());
+            ps.executeUpdate();
+           
+        } catch (SQLException e) {
+           System.out.println("Error updating customer: " + e.getMessage());
+        }
     }
 
     @Override
     public void delete(int id) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        String sql = "DELETE FROM clientes WHERE id_cliente = ?";
+        
+        try (Connection conn = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {            
+            
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            
+        } catch (SQLException e) {
+           System.out.println("Error deleting customer: " + e.getMessage());
+        }
     }
+
+    
+    
+    
     
 }
+    
