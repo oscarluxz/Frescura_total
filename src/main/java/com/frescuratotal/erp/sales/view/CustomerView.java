@@ -4,6 +4,8 @@
  */
 package com.frescuratotal.erp.sales.view;
 
+import com.frescuratotal.erp.sales.model.Customer;
+import com.frescuratotal.erp.sales.model.CustomerType;
 import java.util.Scanner;
 
 /**
@@ -31,5 +33,51 @@ public class CustomerView {
             System.out.println("Invalid option, enter a number of the menu");
             return -1;
         }
+    }
+    
+    public Customer readNewCustomer() {
+        Customer customer = new Customer();
+        
+        System.out.println("Name: ");
+        String name = scan.nextLine();
+        customer.setName(name);
+        
+        System.out.print("Document: ");
+        String document = scan.nextLine();
+        customer.setDocument(document);
+        
+        System.out.print("Email: ");
+        String email = scan.nextLine();
+        customer.setEmail(email);
+        
+        System.out.print("Phone: ");
+        String phone = scan.nextLine();
+        customer.setPhone(phone);
+        
+        System.out.print("Address: ");
+        String address = scan.nextLine();
+        customer.setAddress(address);
+        
+        CustomerType customerType = null;
+
+        while (customerType == null) {
+            System.out.println("Customer type:");
+            System.out.println("1. WHOLESALE");
+            System.out.println("2. RETAIL");
+            System.out.print("Choose a type: ");
+
+            String typeInput = scan.nextLine();
+
+            try {
+                int typeId = Integer.parseInt(typeInput);
+                customerType = CustomerType.fromDbId(typeId);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid type. Enter 1 or 2.");
+            }
+        }
+
+        customer.setCustomerType(customerType);
+        
+        return customer;
     }
 }
