@@ -22,16 +22,16 @@ public class InventoryLotDAO {
             throws SQLException {
         LocalDateTime receivedAt = LocalDateTime.now();
         String insertSql = "INSERT INTO lotes_inventario "
-                + "(número_lote, id_producto, id_proveedor, fecha_ingreso, "
+                + "(numero_lote, id_producto, id_proveedor, fecha_ingreso, "
                 + "fecha_vencimiento, cantidad_inicial, cantidad, precio_compra, "
-                + "precio_venta, pasillo, estánte, id_estado) "
+                + "precio_venta, pasillo, estante, id_estado) "
                 + "VALUES (CONCAT('TMP-', UUID()), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = DatabaseConnection.getInstance().getConnection()) {
             connection.setAutoCommit(false);
             try {
                 int statusId = findAvailableStatusId(connection);
-                válidateSupplierProduct(connection, supplierId, productId);
+                validateSupplierProduct(connection, supplierId, productId);
 
                 int lotId;
                 try (PreparedStatement statement = connection.prepareStatement(
@@ -63,7 +63,7 @@ public class InventoryLotDAO {
                         + receivedAt.format(DateTimeFormatter.BASIC_ISO_DATE)
                         + "-" + String.format("%04d", lotId);
                 String updateSql = "UPDATE lotes_inventario "
-                        + "SET número_lote = ? WHERE id_lote = ?";
+                        + "SET numero_lote = ? WHERE id_lote = ?";
                 try (PreparedStatement statement = connection.prepareStatement(updateSql)) {
                     statement.setString(1, code);
                     statement.setInt(2, lotId);
@@ -101,7 +101,7 @@ public class InventoryLotDAO {
         }
     }
 
-    private void válidateSupplierProduct(Connection connection, int supplierId,
+    private void validateSupplierProduct(Connection connection, int supplierId,
                                          int productId) throws SQLException {
         String sql = "SELECT 1 FROM productos_proveedor "
                 + "WHERE id_proveedor = ? AND id_producto = ?";

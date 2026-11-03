@@ -26,15 +26,15 @@ public class LotController {
             throw new IllegalArgumentException(
                     "La fecha de vencimiento debe ser posterior a hoy.");
         }
-        válidateAmount(quantity, true, "cantidad");
-        válidateAmount(purchasePrice, false, "precio de compra");
-        válidateAmount(salePrice, false, "precio de venta");
+        validateAmount(quantity, true, "cantidad");
+        validateAmount(purchasePrice, false, "precio de compra");
+        validateAmount(salePrice, false, "precio de venta");
 
         return lotDAO.save(productId, supplierId, expirationDate, quantity,
                 purchasePrice, salePrice, optionalText(aisle), optionalText(shelf));
     }
 
-    private void válidateAmount(BigDecimal amount, boolean positive, String field) {
+    private void validateAmount(BigDecimal amount, boolean positive, String field) {
         if (amount == null || amount.scale() > 2
                 || amount.precision() - amount.scale() > 8
                 || amount.signum() < 0 || (positive && amount.signum() == 0)) {
