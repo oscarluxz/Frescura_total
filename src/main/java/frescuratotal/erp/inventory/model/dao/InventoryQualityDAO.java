@@ -18,6 +18,84 @@ public class InventoryQualityDAO {
 
     public static LocalDate today() { return LocalDate.now(ZoneId.of("America/Bogota")); }
 
+    public int recordWaste(int lotId, Integer inspectionId, BigDecimal quantity,
+                          String reason, String responsible, String operationKey) throws SQLException {
+        if (quantity == null || quantity.signum() <= 0
+                || quantity.stripTrailingZeros().scale() > 2
+                || quantity.compareTo(new BigDecimal("99999999.99")) > 0) {
+            throw new IllegalArgumentException("La merma debe ser positiva y respetar DECIMAL(10,2).");
+        }
+        if (inspectionId != null && inspectionId <= 0) { throw new IllegalArgumentException("El ID de inspección debe ser positivo."); }
+        String checkedReason = InventoryJdbc.requiredText(reason, 10000, "La causa");
+        String checkedUser = InventoryJdbc.requiredText(responsible, 100, "El responsable");
+        String key = InventoryJdbc.requiredText(operationKey, 64, "La clave de operación");
+        if (!key.matches("[A-Za-z0-9._:-]+")) {
+            throw new IllegalArgumentException("La clave admite letras sin tildes, números, punto, guion, guion bajo y dos puntos.");
+        }
+        return jdbc.transaction(connection -> {
+            Lot lot = jdbc.lockLot(connection, lotId);
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT m.* FROM operaciones_merma o JOIN registro_mermas m ON m.id_registro=o.id_registro WHERE o.clave_operacion=?")) {
+                statement.setString(1, key);
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) {
+                        Integer storedInspection = (Integer) result.getObject("id_inspeccion");
+                        if (result.getInt("id_lote") != lotId || !java.util.Objects.equals(storedInspection, inspectionId)
+                                || quantity.compareTo(result.getBigDecimal("cantidad_perdida")) != 0
+                                || !checkedReason.equals(result.getString("motivo"))
+                                || !checkedUser.equals(result.getString("usuario_registro"))) {
+                            throw new SQLException("La clave de operación ya corresponde a otra merma.");
+                        }
+                        return result.getInt("id_registro");
+                    }
+                }
+            }
+            if (quantity.compareTo(lot.getQuantity()) > 0) { throw new SQLException("La merma supera las existencias del lote."); }
+            if (inspectionId != null) {
+                if (!hasOpenQuarantine(connection, lotId)) { throw new SQLException("La inspección requiere una cuarentena pendiente."); }
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "SELECT id_lote,resultado FROM inspecciones_calidad WHERE id_inspeccion=? FOR UPDATE")) {
+                    statement.setInt(1, inspectionId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next() || result.getInt(1) != lotId || !"Rechazado".equals(result.getString(2))) {
+                            throw new SQLException("La merma debe referenciar una inspección rechazada del mismo lote.");
+                        }
+                    }
+                }
+                try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM registro_mermas WHERE id_inspeccion=?")) {
+                    statement.setInt(1, inspectionId);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (result.next()) { throw new SQLException("La inspección ya tiene una baja registrada."); }
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE lotes_inventario SET cantidad=cantidad-? WHERE id_lote=? AND cantidad>=?")) {
+                statement.setBigDecimal(1, quantity);
+                statement.setInt(2, lotId);
+                statement.setBigDecimal(3, quantity);
+                if (statement.executeUpdate() != 1) { throw new SQLException("No se pudo descontar la merma."); }
+            }
+            int id;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO registro_mermas(id_lote,id_inspeccion,cantidad_perdida,motivo,usuario_registro) VALUES(?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, lotId);
+                if (inspectionId == null) { statement.setNull(2, Types.INTEGER); } else { statement.setInt(2, inspectionId); }
+                statement.setBigDecimal(3, quantity);
+                statement.setString(4, checkedReason);
+                statement.setString(5, checkedUser);
+                id = InventoryJdbc.insertId(statement);
+            }
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO operaciones_merma(clave_operacion,id_registro) VALUES(?,?)")) {
+                statement.setString(1, key);
+                statement.setInt(2, id);
+                statement.executeUpdate();
+            }
+            return id;
+        });
+    }
+
     public int inspect(int lotId, boolean approved, String inspector, String rejectionReason,
                        String notes) throws SQLException {
         String checkedInspector = InventoryJdbc.requiredText(inspector, 100, "El inspector");
