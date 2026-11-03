@@ -36,8 +36,8 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.setInt(6, customer.getCustomerType().getDbId());
             ps.executeUpdate();
             
-        } catch (SQLException e) {
-           System.out.println("Error saving customer: " + e.getMessage());
+        }  catch (SQLException e) {
+            throw new IllegalStateException("Could not save customer", e);
         }
     }
 
@@ -64,7 +64,9 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
-           System.out.println("Error find customer: " + e.getMessage());
+            throw new IllegalStateException(
+                    "Could not find customer with ID " + id, e
+            );
         }
         return null;
     }
@@ -94,7 +96,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
-           System.out.println("Error find customers: " + e.getMessage());
+            throw new IllegalStateException("Could not retrieve customers", e);
         }
         return customers;
         
@@ -119,7 +121,9 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
            
         } catch (SQLException e) {
-           System.out.println("Error updating customer: " + e.getMessage());
+            throw new IllegalStateException(
+                    "Could not update customer with ID " + customer.getId(), e
+            );
         }
     }
 
@@ -134,7 +138,9 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
             
         } catch (SQLException e) {
-           System.out.println("Error deleting customer: " + e.getMessage());
+            throw new IllegalStateException(
+                    "Could not delete customer with ID " + id, e
+            );
         }
     }
 

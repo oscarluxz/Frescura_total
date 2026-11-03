@@ -6,6 +6,7 @@ package com.frescuratotal.erp.sales.view;
 
 import com.frescuratotal.erp.sales.model.Customer;
 import com.frescuratotal.erp.sales.model.CustomerType;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -80,4 +81,33 @@ public class CustomerView {
         
         return customer;
     }
+    
+    public void showMessage(String message) {
+        System.out.println(message);
+    }
+    
+    public void showCustomers(List<Customer> customers) {
+        if (customers.isEmpty()) {
+            showMessage("No customers found.");
+            return;
+        }
+
+        for (Customer customer : customers) {
+            showMessage(customer.toString());
+        }
+    }
+    
+    public int readCustomerId() {
+        while (true) {
+            System.out.print("Customer ID: ");
+            String input = scan.nextLine();
+
+            try {
+                return Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                showMessage("Enter a numeric customer ID.");
+            }
+        }
+    }
+    
 }
