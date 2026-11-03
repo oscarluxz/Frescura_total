@@ -58,4 +58,51 @@ public class WasteMySqlTest extends QualityMySqlSupport {
             return false;
         }
     }
+
+    @Test public void rejectsInspectionFromResolvedOrDifferentQuarantine() throws Exception {
+        int lot = addLot(dao.today().plusDays(30));
+        dao.quarantine(lot, "Daño inicial", "Junior");
+        int old = dao.inspect(lot, false, "Ana", "Daño inicial", null);
+        dao.inspect(lot, true, "Ana", null, "Corregido");
+        dao.quarantine(lot, "Nuevo daño", "Junior");
+        try { dao.recordWaste(lot, old, BigDecimal.ONE, "Daño inicial", "Junior", "stale"); fail(); }
+        catch (SQLException expected) { assertTrue(expected.getMessage().contains("vigente")); }
+        int current = dao.inspect(lot, false, "Ana", "Nuevo daño", null);
+        assertTrue(dao.recordWaste(lot, current, BigDecimal.ONE, "Nuevo daño", "Junior", "current") > 0);
+        assertEquals(1, count("registro_mermas"));
+    }
+
+    @Test public void concurrentRetriesReturnSameWasteWithoutDoubleDeduction() throws Exception {
+        int lot = addLot(dao.today().plusDays(30));
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        Callable<Integer> action = () -> {
+            start.await();
+            return dao.recordWaste(lot, null, BigDecimal.ONE, "Daño", "Junior", "same-key");
+        };
+        try {
+            Future<Integer> first = workers.submit(action);
+            Future<Integer> second = workers.submit(action);
+            start.countDown();
+            assertEquals(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+            assertEquals(0, new BigDecimal("9").compareTo(remaining(lot)));
+            assertEquals(1, count("registro_mermas"));
+        } finally { workers.shutdownNow(); }
+    }
+
+    @Test public void allowsTotalWasteButRejectsInvalidQuantities() throws Exception {
+        int lot = addLot(dao.today().plusDays(30));
+        for (BigDecimal invalid : new BigDecimal[] {BigDecimal.ZERO, new BigDecimal("-1"), new BigDecimal("0.001")}) {
+            try { dao.recordWaste(lot, null, invalid, "Daño", "Junior", "invalid"); fail(); }
+            catch (IllegalArgumentException expected) { assertTrue(expected.getMessage().contains("DECIMAL")); }
+        }
+        dao.recordWaste(lot, null, new BigDecimal("10"), "Pérdida total", "Junior", "total");
+        assertEquals(0, remaining(lot).signum());
+        try (Connection connection = jdbc.open()) {
+            connection.setAutoCommit(false);
+            try { dao.assertSellable(connection, lot, BigDecimal.ONE); fail(); }
+            catch (SQLException expected) { assertTrue(expected.getMessage().contains("existencias")); }
+            connection.rollback();
+        }
+    }
 }

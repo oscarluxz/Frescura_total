@@ -54,11 +54,13 @@ public class InventoryQualityDAO {
             if (inspectionId != null) {
                 if (!hasOpenQuarantine(connection, lotId)) { throw new SQLException("La inspección requiere una cuarentena pendiente."); }
                 try (PreparedStatement statement = connection.prepareStatement(
-                        "SELECT id_lote,resultado FROM inspecciones_calidad WHERE id_inspeccion=? FOR UPDATE")) {
+                        "SELECT id_lote,resultado FROM inspecciones_calidad WHERE id_inspeccion=? "
+                        + "AND id_inspeccion=(SELECT MAX(i.id_inspeccion) FROM inspecciones_calidad i WHERE i.id_lote=?) FOR UPDATE")) {
                     statement.setInt(1, inspectionId);
+                    statement.setInt(2, lotId);
                     try (ResultSet result = statement.executeQuery()) {
                         if (!result.next() || result.getInt(1) != lotId || !"Rechazado".equals(result.getString(2))) {
-                            throw new SQLException("La merma debe referenciar una inspección rechazada del mismo lote.");
+                            throw new SQLException("La merma debe referenciar la última inspección rechazada vigente del mismo lote.");
                         }
                     }
                 }
