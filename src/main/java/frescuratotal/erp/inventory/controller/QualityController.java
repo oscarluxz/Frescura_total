@@ -12,4 +12,8 @@ public class QualityController {
     public int refreshStatuses() throws SQLException {
         return qualityDAO.refreshStatuses(InventoryQualityDAO.today());
     }
+
+    public int quarantine(int lotId, String reason, String responsible) throws SQLException {
+        return qualityDAO.quarantine(lotId, reason, responsible);
+    }
 }

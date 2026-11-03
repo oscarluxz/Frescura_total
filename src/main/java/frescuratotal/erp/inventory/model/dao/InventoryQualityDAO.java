@@ -17,6 +17,37 @@ public class InventoryQualityDAO {
 
     public static LocalDate today() { return LocalDate.now(ZoneId.of("America/Bogota")); }
 
+    public int quarantine(int lotId, String reason, String responsible) throws SQLException {
+        String checkedReason = InventoryJdbc.requiredText(reason, 10000, "El motivo");
+        String checkedResponsible = InventoryJdbc.requiredText(responsible, 100, "El responsable");
+        return jdbc.transaction(connection -> {
+            Lot lot = jdbc.lockLot(connection, lotId);
+            if (lot.getQuantity().signum() == 0) { throw new SQLException("El lote no tiene existencias."); }
+            if (jdbc.status(connection, lot.getStatusId()) == LotStatus.IN_QUARANTINE
+                    || hasOpenQuarantine(connection, lotId)) {
+                throw new SQLException("El lote ya tiene una cuarentena pendiente.");
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO registro_cuarentena(id_lote,motivo,usuario) VALUES(?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, lotId);
+                statement.setString(2, checkedReason);
+                statement.setString(3, checkedResponsible);
+                int id = InventoryJdbc.insertId(statement);
+                jdbc.setStatus(connection, lotId, LotStatus.IN_QUARANTINE);
+                return id;
+            }
+        });
+    }
+
+    private boolean hasOpenQuarantine(Connection connection, int lotId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT 1 FROM registro_cuarentena WHERE id_lote=? AND resuelta=FALSE")) {
+            statement.setInt(1, lotId);
+            try (ResultSet result = statement.executeQuery()) { return result.next(); }
+        }
+    }
+
     public int refreshStatuses(LocalDate today) throws SQLException {
         return jdbc.transaction(connection -> {
             List<Integer> ids = new ArrayList<>();

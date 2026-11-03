@@ -101,4 +101,12 @@ public class InventoryJdbc {
         }
         return value.trim();
     }
+
+    public static int insertId(PreparedStatement statement) throws SQLException {
+        if (statement.executeUpdate() != 1) { throw new SQLException("No se pudo guardar el registro."); }
+        try (ResultSet keys = statement.getGeneratedKeys()) {
+            if (!keys.next()) { throw new SQLException("No se obtuvo el ID del registro."); }
+            return keys.getInt(1);
+        }
+    }
 }
