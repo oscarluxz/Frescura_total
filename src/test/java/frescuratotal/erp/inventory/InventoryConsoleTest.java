@@ -40,6 +40,6 @@ public class InventoryConsoleTest {
 
     @Test public void exitsAtEndOfInput() {
         assertTrue(runConsole("").contains("INVENTARIO FRESCURA TOTAL"));
-        assertTrue(runConsole("1\n").contains("El lote no fue registrado."));
+        assertTrue(runConsole("1\n").contains("La operación no se completó."));
     }
 }
