@@ -2,6 +2,8 @@ package frescuratotal.erp.inventory.controller;
 
 import frescuratotal.erp.inventory.model.dao.InventoryQualityDAO;
 import java.sql.SQLException;
+import java.util.List;
+import frescuratotal.erp.inventory.model.Inspection;
 
 public class QualityController {
     private final InventoryQualityDAO qualityDAO;
@@ -15,5 +17,13 @@ public class QualityController {
 
     public int quarantine(int lotId, String reason, String responsible) throws SQLException {
         return qualityDAO.quarantine(lotId, reason, responsible);
+    }
+
+    public int inspect(int lotId, boolean approved, String inspector, String rejectionReason, String notes) throws SQLException {
+        return qualityDAO.inspect(lotId, approved, inspector, rejectionReason, notes);
+    }
+
+    public List<Inspection> inspectionHistory(int lotId) throws SQLException {
+        return qualityDAO.inspectionHistory(lotId);
     }
 }

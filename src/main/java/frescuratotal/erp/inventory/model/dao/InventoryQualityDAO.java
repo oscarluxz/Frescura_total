@@ -2,6 +2,7 @@ package frescuratotal.erp.inventory.model.dao;
 
 import frescuratotal.erp.inventory.model.Lot;
 import frescuratotal.erp.inventory.model.LotStatus;
+import frescuratotal.erp.inventory.model.Inspection;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
@@ -16,6 +17,61 @@ public class InventoryQualityDAO {
     public InventoryQualityDAO(InventoryJdbc jdbc) { this.jdbc = jdbc; }
 
     public static LocalDate today() { return LocalDate.now(ZoneId.of("America/Bogota")); }
+
+    public int inspect(int lotId, boolean approved, String inspector, String rejectionReason,
+                       String notes) throws SQLException {
+        String checkedInspector = InventoryJdbc.requiredText(inspector, 100, "El inspector");
+        String checkedReason = approved ? null : InventoryJdbc.requiredText(rejectionReason, 10000, "El motivo de rechazo");
+        String checkedNotes = notes == null || notes.isBlank() ? null
+                : InventoryJdbc.requiredText(notes, 10000, "Las notas");
+        return jdbc.transaction(connection -> {
+            Lot lot = jdbc.lockLot(connection, lotId);
+            if (!hasOpenQuarantine(connection, lotId)) {
+                throw new SQLException("El lote no tiene una cuarentena pendiente de inspección.");
+            }
+            int id;
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO inspecciones_calidad(id_lote,resultado,nombre_inspector,motivo_rechazo,notas) VALUES(?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, lotId);
+                statement.setString(2, approved ? "Aprobado" : "Rechazado");
+                statement.setString(3, checkedInspector);
+                statement.setString(4, checkedReason);
+                statement.setString(5, checkedNotes);
+                id = InventoryJdbc.insertId(statement);
+            }
+            if (approved) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE registro_cuarentena SET resuelta=TRUE,fecha_resolucion=CURRENT_TIMESTAMP,"
+                        + "notas_resolucion=? WHERE id_lote=? AND resuelta=FALSE")) {
+                    statement.setString(1, "Inspección aprobada #" + id + ": " + checkedInspector);
+                    statement.setInt(2, lotId);
+                    if (statement.executeUpdate() == 0) { throw new SQLException("La cuarentena ya fue resuelta."); }
+                }
+                jdbc.setStatus(connection, lotId, LotStatus.forDate(lot.getExpirationDate(), today()));
+            } else {
+                jdbc.setStatus(connection, lotId, LotStatus.IN_QUARANTINE);
+            }
+            return id;
+        });
+    }
+
+    public List<Inspection> inspectionHistory(int lotId) throws SQLException {
+        if (lotId <= 0) { throw new IllegalArgumentException("El ID del lote debe ser positivo."); }
+        List<Inspection> history = new ArrayList<>();
+        try (Connection connection = jdbc.open(); PreparedStatement statement = connection.prepareStatement(
+                "SELECT * FROM inspecciones_calidad WHERE id_lote=? ORDER BY id_inspeccion")) {
+            statement.setInt(1, lotId);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    history.add(new Inspection(result.getInt("id_inspeccion"), lotId,
+                            result.getTimestamp("fecha_inspeccion").toLocalDateTime(), result.getString("resultado"),
+                            result.getString("nombre_inspector"), result.getString("motivo_rechazo"), result.getString("notas")));
+                }
+            }
+        }
+        return history;
+    }
 
     public int quarantine(int lotId, String reason, String responsible) throws SQLException {
         String checkedReason = InventoryJdbc.requiredText(reason, 10000, "El motivo");
