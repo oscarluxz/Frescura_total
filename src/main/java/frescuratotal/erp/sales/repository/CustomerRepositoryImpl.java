@@ -70,7 +70,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Falló la consulta del cliente. ID=" + id, e);
             throw new IllegalStateException(
-                    "Could not find customer with ID " + id, e
+                    "No se pudo consultar el cliente con ID " + id, e
             );
         }
         return null;
@@ -129,7 +129,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Falló la actualización del cliente. ID=" + customer.getId(), e);
             throw new IllegalStateException(
-                    "Could not update customer with ID " + customer.getId(), e
+                    "No se pudo actualizar el cliente con ID " + customer.getId(), e
             );
         }
     }
@@ -147,7 +147,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Falló la eliminación del cliente. ID=" + id, e);
             throw new IllegalStateException(
-                    "Could not delete customer with ID " + id, e
+                    "No se pudo eliminar el cliente con ID " + id, e
             );
         }
     }

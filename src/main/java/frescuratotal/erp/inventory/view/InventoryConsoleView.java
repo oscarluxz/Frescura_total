@@ -26,7 +26,7 @@ public class InventoryConsoleView {
         this.traceController = traceController;
     }
 
-    public static void main(String[] args) { new InventoryConsoleView().run(); }
+    public static void main(String[] args) { frescuratotal.erp.Main.main(args); }
     public void run() { run(new Scanner(System.in)); }
 
     public void run(Scanner scanner) {
@@ -114,6 +114,7 @@ public class InventoryConsoleView {
         String reason = approved ? null : read(scanner, "Motivo de rechazo: ");
         String notes = read(scanner, "Notas (opcional): ");
         System.out.println("Inspección registrada: " + qualityController.inspect(lot, approved, inspector, reason, notes));
+        if (!approved) { System.out.println("Lote rechazado: existencias restantes dadas de baja como merma en la misma transacción."); }
     }
 
     private void recordWaste(Scanner scanner) throws SQLException {
@@ -133,7 +134,9 @@ public class InventoryConsoleView {
             Lot lot = trace.getLot();
             System.out.println("ID " + lot.getId() + " | " + lot.getCode() + " | " + trace.getProductName()
                     + " | Existencias: " + lot.getQuantity() + " | Vence: " + lot.getExpirationDate()
-                    + " | Estado: " + trace.getStatus().getDatabaseName());
+                    + " | Estado: " + trace.getStatus().getDatabaseName()
+                    + (trace.getStatus() == LotStatus.EXPIRED && lot.getQuantity().signum() > 0 ? " | PENDIENTE DE BAJA" : "")
+                    + (trace.getStatus() == LotStatus.NEAR_EXPIRY && lot.getQuantity().signum() > 0 ? " | ALERTA: próximo a vencer" : ""));
         }
     }
 

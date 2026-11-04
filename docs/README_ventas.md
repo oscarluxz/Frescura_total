@@ -16,7 +16,8 @@ Paquete `frescuratotal.erp.sales`. Se accede desde el menú principal con la opc
 - Para este proyecto el equipo eligió un IVA único del 19 % en todas las líneas. La tasa se guarda en `detalles_venta.tasa_impuesto`.
 - La base del impuesto de cada línea es el valor bruto menos su descuento. Los valores se redondean a dos decimales.
 - El encabezado de la venta, el detalle, la factura y el descuento de existencias se confirman en una sola transacción JDBC. Si algo falla se hace `rollback`.
-- El CUFE es simulado: un hash SHA-256 de los identificadores y totales de la venta. El QR apunta a una URL local de verificación y no se conecta con la DIAN.
+- El CUFE es simulado: SHA-256 de `numeroFactura|fechaHoraISO|totalConDosDecimales|NIT`. La fecha se comparte entre venta, factura y PDF. El QR apunta a una URL simulada y no se conecta con la DIAN. La identidad empresarial se consulta en `informacion_empresa`; no está escrita de forma fija en el generador.
+- Después de facturar, Logística → opción 9 permite pasar una venta Registrada a En preparación. Repetir la transición, o aplicarla desde otro estado, se rechaza.
 
 ## Estructura
 
@@ -24,7 +25,7 @@ Paquete `frescuratotal.erp.sales`. Se accede desde el menú principal con la opc
 sales/
 ├── SalesModuleFactory       // Ensambla el módulo
 ├── controller/              // SalesController, CustomerController
-├── model/                   // Customer, CustomerType, SaleItem, SaleReceipt, AvailableProduct, InvoiceLine
+├── model/                   // Customer, CustomerType, SaleItem, SaleReceipt, AvailableProduct, InvoiceLine, CompanyInfo
 ├── repository/              // Interfaces y clases JDBC, y LotSaleValidator
 ├── service/                 // SalesService, CustomerService, SaleAllocationPolicy, InvoiceFileService
 └── view/                    // SalesView, CustomerView

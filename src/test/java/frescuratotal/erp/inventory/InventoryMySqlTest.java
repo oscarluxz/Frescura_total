@@ -28,14 +28,7 @@ public class InventoryMySqlTest {
                     connection.getCatalog(), null, "%", new String[] {"TABLE"})) {
                 assertFalse("La base de prueba debe estar vacía.", tables.next());
             }
-            String source = Files.readString(Path.of(schemaPath)).replaceAll("(?m)^--.*$", "");
-            for (String sql : source.split(";")) {
-                String command = sql.trim();
-                // Never execute the original DROP DATABASE / CREATE DATABASE / USE.
-                if (command.startsWith("CREATE TABLE") || command.startsWith("INSERT INTO")) {
-                    statement.execute(command);
-                }
-            }
+            frescuratotal.erp.support.SqlTestDatabase.minimal(statement, Path.of(schemaPath));
             statement.executeUpdate("UPDATE estados_lote SET id_estado = 17 WHERE nombre = 'Disponible'");
             statement.executeUpdate("INSERT INTO proveedores (nombre, nit, email) "
                     + "VALUES ('Prueba', 'TEST-1', 'test@example.invalid')");

@@ -5,6 +5,9 @@ import frescuratotal.erp.sales.model.AvailableProduct;
 import frescuratotal.erp.sales.model.InvoiceLine;
 import frescuratotal.erp.sales.model.SaleItem;
 import frescuratotal.erp.sales.model.SaleReceipt;
+import frescuratotal.erp.sales.model.CompanyInfo;
+import java.time.LocalDateTime;
+import java.sql.Timestamp;
 import frescuratotal.erp.sales.service.InvoiceFileService;
 import frescuratotal.erp.sales.service.SaleAllocationPolicy;
 import java.math.BigDecimal;
@@ -74,12 +77,19 @@ public class SalesRepositoryImpl implements SalesRepository {
             connection.setAutoCommit(false);
             try {
                 CustomerRow customer = requireCustomer(connection, customerId);
+                CompanyInfo company = requireCompany(connection);
+                LocalDateTime issuedAt = LocalDateTime.now(BUSINESS_ZONE).withNano(0);
+                String customerAddress;
+                try (PreparedStatement statement = connection.prepareStatement("SELECT direccion FROM clientes WHERE id_cliente=?")) {
+                    statement.setInt(1, customerId);
+                    try (ResultSet result = statement.executeQuery()) { result.next(); customerAddress = result.getString(1); }
+                }
                 List<Allocation> allocations = allocateByFefo(connection, items);
                 Totals totals = calculateTotals(allocations);
                 String saleNumber = "SALE-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
                 int registeredStatusId = findRegisteredStatusId(connection);
                 int saleId = insertSale(connection, saleNumber, customerId, cashier,
-                        registeredStatusId, totals);
+                        registeredStatusId, totals, issuedAt);
 
                 for (Allocation allocation : allocations) {
                     lotSaleValidator.assertSellable(connection, allocation.lotId(), allocation.quantity());
@@ -88,8 +98,8 @@ public class SalesRepositoryImpl implements SalesRepository {
                 }
 
                 String invoiceNumber = "FT-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
-                String cufe = createCufe(saleId, saleNumber, invoiceNumber, customerId, totals);
-                insertInvoice(connection, saleId, invoiceNumber, cufe, totals);
+                String cufe = createCufe(invoiceNumber, issuedAt, company.getNit(), totals);
+                insertInvoice(connection, saleId, invoiceNumber, cufe, totals, issuedAt);
                 List<InvoiceLine> invoiceLines = allocations.stream()
                         .map(line -> new InvoiceLine(line.productName(), line.lotId(), line.quantity(),
                                 line.unitPrice(), line.discountRate(), line.discount(), line.taxRate(),
@@ -97,7 +107,7 @@ public class SalesRepositoryImpl implements SalesRepository {
                         .toList();
                 SaleReceipt receipt = new SaleReceipt(saleId, saleNumber, invoiceNumber, cufe,
                         customer.name(), customer.document(), invoiceLines,
-                        totals.subtotal(), totals.discount(), totals.tax(), totals.total(), null, null);
+                        totals.subtotal(), totals.discount(), totals.tax(), totals.total(), null, null, company, issuedAt, customerAddress);
                 completeReceipt = invoiceFileService.createFiles(receipt);
                 connection.commit();
             } catch (SQLException | RuntimeException e) {
@@ -180,6 +190,15 @@ public class SalesRepositoryImpl implements SalesRepository {
         }
     }
 
+    private CompanyInfo requireCompany(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM informacion_empresa ORDER BY id_empresa LIMIT 1");
+             ResultSet result = statement.executeQuery()) {
+            if (!result.next()) { throw new SQLException("Falta la información de la empresa para facturar."); }
+            return new CompanyInfo(result.getString("nombre_empresa"), result.getString("nit"),
+                    result.getString("direccion") + ", " + result.getString("ciudad"), result.getString("telefono"), result.getString("email"));
+        }
+    }
+
     private int findRegisteredStatusId(Connection connection) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT id_estado FROM estados_venta WHERE nombre = 'Registrada'");
@@ -192,9 +211,9 @@ public class SalesRepositoryImpl implements SalesRepository {
     }
 
     private int insertSale(Connection connection, String saleNumber, int customerId, String cashier,
-                           int statusId, Totals totals) throws SQLException {
+                           int statusId, Totals totals, LocalDateTime issuedAt) throws SQLException {
         String sql = "INSERT INTO ventas (numero_venta, id_cliente, subtotal, total_descuento, "
-                + "total_impuesto, monto_total, id_estado, usuario_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "total_impuesto, monto_total, id_estado, usuario_registro, fecha_venta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setString(1, saleNumber);
             statement.setInt(2, customerId);
@@ -204,6 +223,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setBigDecimal(6, totals.total());
             statement.setInt(7, statusId);
             statement.setString(8, cashier);
+            statement.setTimestamp(9, Timestamp.valueOf(issuedAt));
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("No se insertó el encabezado de la venta.");
             }
@@ -249,10 +269,10 @@ public class SalesRepositoryImpl implements SalesRepository {
     }
 
     private void insertInvoice(Connection connection, int saleId, String invoiceNumber,
-                               String cufe, Totals totals) throws SQLException {
+                               String cufe, Totals totals, LocalDateTime issuedAt) throws SQLException {
         String qrContent = "https://frescuratotal.local/verify?cufe=" + cufe;
         String sql = "INSERT INTO facturas (id_venta, numero_factura, cufe, enlace_qr, subtotal, "
-                + "total_descuento, monto_impuesto, monto_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "total_descuento, monto_impuesto, monto_total, fecha_emision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, saleId);
             statement.setString(2, invoiceNumber);
@@ -262,6 +282,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setBigDecimal(6, totals.discount());
             statement.setBigDecimal(7, totals.tax());
             statement.setBigDecimal(8, totals.total());
+            statement.setTimestamp(9, Timestamp.valueOf(issuedAt));
             statement.executeUpdate();
         }
     }
@@ -281,11 +302,8 @@ public class SalesRepositoryImpl implements SalesRepository {
         return new Totals(subtotal, discount, tax, money(subtotal.subtract(discount).add(tax)));
     }
 
-    private String createCufe(int saleId, String saleNumber, String invoiceNumber,
-                              int customerId, Totals totals) {
-        String payload = String.join("|", Integer.toString(saleId), saleNumber, invoiceNumber,
-                Integer.toString(customerId), totals.subtotal().toPlainString(),
-                totals.discount().toPlainString(), totals.tax().toPlainString(), totals.total().toPlainString());
+    private String createCufe(String invoiceNumber, LocalDateTime issuedAt, String companyNit, Totals totals) {
+        String payload = String.join("|", invoiceNumber, issuedAt.toString(), totals.total().toPlainString(), companyNit);
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(payload.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
@@ -306,11 +324,161 @@ public class SalesRepositoryImpl implements SalesRepository {
         }
     }
 
-    private record CustomerRow(String name, String document) { }
-    private record LotRow(int id, String productName, LocalDate expirationDate,
-                          BigDecimal quantity, BigDecimal salePrice) { }
-    private record Allocation(int lotId, String productName, BigDecimal quantity, BigDecimal unitPrice,
-                             BigDecimal discountRate, BigDecimal discount, BigDecimal taxRate,
-                             BigDecimal tax, BigDecimal gross, BigDecimal lineTotal) { }
-    private record Totals(BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total) { }
+    private static final class CustomerRow {
+        private final String name;
+        private final String document;
+
+        private CustomerRow(String name, String document) {
+            this.name = name;
+            this.document = document;
+        }
+
+        public String name() { return name; }
+        public String getName() { return name; }
+        public String document() { return document; }
+        public String getDocument() { return document; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof CustomerRow)) { return false; }
+            CustomerRow value = (CustomerRow) other;
+            return java.util.Objects.equals(name, value.name)
+                    && java.util.Objects.equals(document, value.document);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(name, document); }
+    }
+    private static final class LotRow {
+        private final int id;
+        private final String productName;
+        private final LocalDate expirationDate;
+        private final BigDecimal quantity;
+        private final BigDecimal salePrice;
+
+        private LotRow(int id, String productName, LocalDate expirationDate, BigDecimal quantity, BigDecimal salePrice) {
+            this.id = id;
+            this.productName = productName;
+            this.expirationDate = expirationDate;
+            this.quantity = quantity;
+            this.salePrice = salePrice;
+        }
+
+        public int id() { return id; }
+        public int getId() { return id; }
+        public String productName() { return productName; }
+        public String getProductName() { return productName; }
+        public LocalDate expirationDate() { return expirationDate; }
+        public LocalDate getExpirationDate() { return expirationDate; }
+        public BigDecimal quantity() { return quantity; }
+        public BigDecimal getQuantity() { return quantity; }
+        public BigDecimal salePrice() { return salePrice; }
+        public BigDecimal getSalePrice() { return salePrice; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof LotRow)) { return false; }
+            LotRow value = (LotRow) other;
+            return id == value.id
+                    && java.util.Objects.equals(productName, value.productName)
+                    && java.util.Objects.equals(expirationDate, value.expirationDate)
+                    && java.util.Objects.equals(quantity, value.quantity)
+                    && java.util.Objects.equals(salePrice, value.salePrice);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(id, productName, expirationDate, quantity, salePrice); }
+    }
+    private static final class Allocation {
+        private final int lotId;
+        private final String productName;
+        private final BigDecimal quantity;
+        private final BigDecimal unitPrice;
+        private final BigDecimal discountRate;
+        private final BigDecimal discount;
+        private final BigDecimal taxRate;
+        private final BigDecimal tax;
+        private final BigDecimal gross;
+        private final BigDecimal lineTotal;
+
+        private Allocation(int lotId, String productName, BigDecimal quantity, BigDecimal unitPrice, BigDecimal discountRate, BigDecimal discount, BigDecimal taxRate, BigDecimal tax, BigDecimal gross, BigDecimal lineTotal) {
+            this.lotId = lotId;
+            this.productName = productName;
+            this.quantity = quantity;
+            this.unitPrice = unitPrice;
+            this.discountRate = discountRate;
+            this.discount = discount;
+            this.taxRate = taxRate;
+            this.tax = tax;
+            this.gross = gross;
+            this.lineTotal = lineTotal;
+        }
+
+        public int lotId() { return lotId; }
+        public int getLotId() { return lotId; }
+        public String productName() { return productName; }
+        public String getProductName() { return productName; }
+        public BigDecimal quantity() { return quantity; }
+        public BigDecimal getQuantity() { return quantity; }
+        public BigDecimal unitPrice() { return unitPrice; }
+        public BigDecimal getUnitPrice() { return unitPrice; }
+        public BigDecimal discountRate() { return discountRate; }
+        public BigDecimal getDiscountRate() { return discountRate; }
+        public BigDecimal discount() { return discount; }
+        public BigDecimal getDiscount() { return discount; }
+        public BigDecimal taxRate() { return taxRate; }
+        public BigDecimal getTaxRate() { return taxRate; }
+        public BigDecimal tax() { return tax; }
+        public BigDecimal getTax() { return tax; }
+        public BigDecimal gross() { return gross; }
+        public BigDecimal getGross() { return gross; }
+        public BigDecimal lineTotal() { return lineTotal; }
+        public BigDecimal getLineTotal() { return lineTotal; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof Allocation)) { return false; }
+            Allocation value = (Allocation) other;
+            return lotId == value.lotId
+                    && java.util.Objects.equals(productName, value.productName)
+                    && java.util.Objects.equals(quantity, value.quantity)
+                    && java.util.Objects.equals(unitPrice, value.unitPrice)
+                    && java.util.Objects.equals(discountRate, value.discountRate)
+                    && java.util.Objects.equals(discount, value.discount)
+                    && java.util.Objects.equals(taxRate, value.taxRate)
+                    && java.util.Objects.equals(tax, value.tax)
+                    && java.util.Objects.equals(gross, value.gross)
+                    && java.util.Objects.equals(lineTotal, value.lineTotal);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(lotId, productName, quantity, unitPrice, discountRate, discount, taxRate, tax, gross, lineTotal); }
+    }
+    private static final class Totals {
+        private final BigDecimal subtotal;
+        private final BigDecimal discount;
+        private final BigDecimal tax;
+        private final BigDecimal total;
+
+        private Totals(BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total) {
+            this.subtotal = subtotal;
+            this.discount = discount;
+            this.tax = tax;
+            this.total = total;
+        }
+
+        public BigDecimal subtotal() { return subtotal; }
+        public BigDecimal getSubtotal() { return subtotal; }
+        public BigDecimal discount() { return discount; }
+        public BigDecimal getDiscount() { return discount; }
+        public BigDecimal tax() { return tax; }
+        public BigDecimal getTax() { return tax; }
+        public BigDecimal total() { return total; }
+        public BigDecimal getTotal() { return total; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof Totals)) { return false; }
+            Totals value = (Totals) other;
+            return java.util.Objects.equals(subtotal, value.subtotal)
+                    && java.util.Objects.equals(discount, value.discount)
+                    && java.util.Objects.equals(tax, value.tax)
+                    && java.util.Objects.equals(total, value.total);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(subtotal, discount, tax, total); }
+    }
 }

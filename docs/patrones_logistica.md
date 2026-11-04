@@ -21,11 +21,13 @@ Todo el SQL vive únicamente en las clases `Jdbc*`. El controlador y la vista so
 
 **Inversión de dependencias (D).** `LogisticsController` recibe los cuatro repositorios por constructor y depende de las interfaces, no de las clases `Jdbc*`. El ensamblado se hace en `Main`: repositorios, luego controlador, luego vista. Esto permite cambiar la fuente de datos sin tocar el controlador.
 
-**Segregación de interfaces (I).** `DispatchOrderRepository` es de solo lectura (solo consulta pedidos), y está separado de `DeliveryRouteRepository`, que sí modifica datos. Quien solo necesita ver el panel no depende de métodos de escritura.
+**Segregación de interfaces (I).** `DispatchOrderRepository` concentra la preparación de pedidos y la consulta del panel; `DeliveryRouteRepository` gestiona rutas y entregas. Las interfaces de vehículos y conductores mantienen sus operaciones propias, sin obligar a un repositorio a implementar la persistencia de todo el módulo.
 
 ## Máquina de estados del ciclo de entrega
 
 El enum `DispatchStatus` modela el ciclo `IN_PREPARATION`, `IN_TRANSIT`, `DELIVERED`. El método `canTransitionTo()` solo permite avanzar un paso. `JdbcDeliveryRouteRepository.changeSaleStatus()` lo consulta antes de actualizar la venta, así que es imposible saltar de "En preparación" a "Entregada" o retroceder. La regla vive en un solo lugar y no repartida en `if` por toda la aplicación.
+
+El paso previo Registrada → En preparación se ejecuta desde la opción 9 de logística mediante un UPDATE condicionado al estado Registrada. Si no existe la venta o ya está en otro estado, no se modifica ninguna fila y se informa el rechazo.
 
 Los enums `DispatchStatus`, `RouteStatus` y `VehicleStatus` guardan dos textos: `dbName`, el valor exacto que usa MySQL (sin tildes, por ejemplo `En Transito`), y `label`, el texto en español que se muestra al usuario. Así la base de datos y la consola no se mezclan.
 
@@ -33,9 +35,11 @@ Los enums `DispatchStatus`, `RouteStatus` y `VehicleStatus` guardan dos textos: 
 
 Crear una ruta (ruta, asignación de vehículo y conductor, y paradas) y también iniciar una ruta o confirmar una entrega modifican varias tablas a la vez. Cada una de estas operaciones en `JdbcDeliveryRouteRepository` desactiva el `autoCommit`, ejecuta todos sus pasos y hace `commit` si todo salió bien. Si ocurre cualquier error hace `rollback`, de modo que la base de datos nunca queda a medias: no puede haber una ruta creada sin paradas, ni una ruta en tránsito con pedidos que siguen en preparación.
 
+La disponibilidad se vuelve a comprobar dentro de la transacción: se bloquean vehículo, conductor y pedidos antes de guardar la asignación. Así dos solicitudes no pueden reservar simultáneamente el mismo recurso o pedido aunque ambas hayan visto el panel disponible. Para las entregas se bloquea la ruta antes de cambiar el pedido y contar pendientes, evitando que dos entregas simultáneas dejen la ruta abierta cuando ya no quedan pedidos pendientes.
+
 ## Modelo de lectura para el panel de despacho
 
-El panel muestra **todos** los pedidos En preparación, y una columna indica si cada uno ya tiene ruta. Para esto `JdbcDispatchOrderRepository` usa un `LEFT JOIN` hacia las rutas activas: un pedido sin ruta aparece igual, con la ruta vacía. Las rutas canceladas se ignoran, así que sus pedidos vuelven a verse como "Sin ruta". La regla de que solo se puedan agregar a una ruta los pedidos sin ruta asignada está en el controlador, no en la consulta.
+El panel muestra **todos** los pedidos En preparación, y una columna indica si cada uno ya tiene ruta. Para esto `JdbcDispatchOrderRepository` usa un `LEFT JOIN` hacia las rutas activas: un pedido sin ruta aparece igual, con la ruta vacía. Las rutas canceladas se ignoran, así que sus pedidos vuelven a verse como "Sin ruta". El controlador valida los pedidos elegidos y el repositorio vuelve a validar su estado y asignación con bloqueos dentro de la transacción.
 
 ## Decisiones adicionales
 

@@ -73,7 +73,7 @@ public class SalesView {
     }
 
     public void showReceipt(SaleReceipt receipt) {
-        System.out.println("Venta guardada: " + receipt.saleNumber());
+        System.out.println("Venta guardada: " + receipt.saleNumber() + " | ID para despacho: " + receipt.saleId());
         System.out.println("Factura: " + receipt.invoiceNumber());
         System.out.println("Subtotal: " + receipt.subtotal());
         System.out.println("Descuento: " + receipt.discount());

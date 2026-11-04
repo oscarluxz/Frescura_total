@@ -38,7 +38,7 @@ Sistema ERP de consola para la bodega de alimentos Frescura Total. Resuelve el p
    | `ERP_DB_PORT` | No (por defecto `3306`) | `3306` |
    | `ERP_DB_NAME` | No (por defecto `erp_frescura_total`) | `erp_frescura_total` |
 
-   La contraseña no está escrita en el código, para no subirla al repositorio. En NetBeans se puede definir en las propiedades del proyecto, en **Run → Environment**, o en el sistema operativo antes de abrir el IDE.
+   La contraseña no está escrita en el código. Defina las variables en el sistema operativo antes de iniciar NetBeans; reinicie el IDE si ya estaba abierto. `ERP_DB_URL` permite indicar una URL JDBC completa y tiene prioridad sobre host, puerto y nombre.
 
 ## Instalación y ejecución
 
@@ -55,7 +55,8 @@ Sistema ERP de consola para la bodega de alimentos Frescura Total. Resuelve el p
 Opcional, desde la terminal y con la variable `ERP_DB_PASSWORD` definida:
 
 ```
-mvn compile org.codehaus.mojo:exec-maven-plugin:3.1.0:java -Dexec.mainClass=frescuratotal.erp.Main
+mvn clean verify
+mvn exec:java
 ```
 
 ## Estructura del proyecto
@@ -106,3 +107,45 @@ El detalle de cada decisión está en `docs/patrones_proveedores.md` y `docs/pat
 **Política de asignación FEFO (ventas).** `SaleAllocationPolicy` concentra la regla de qué lote se vende primero y cuándo aplica el descuento, separada del SQL y de la consola, lo que permite probarla con pruebas automáticas. Cada venta se guarda en una sola transacción con `commit` y `rollback`.
 
 El detalle del módulo de ventas está en `docs/README_ventas.md`.
+
+## Recorrido del sistema integrado
+
+1. Al entrar al menú principal se revisan los vencimientos automáticamente, una vez por fecha de Bogotá durante la sesión. Es la revisión diaria **simulada** permitida por el enunciado; no requiere un servicio externo. La opción 2 de inventario permite repetirla manualmente.
+2. Inventario permite registrar lotes, consultar existencias y alertas, ponerlos en cuarentena y registrar mermas. Un vencido con existencias se muestra como **PENDIENTE DE BAJA** y nunca puede venderse.
+3. La sesión inicia como Operador. Para inspeccionar, use la opción **5 del menú principal → 2, Inspector**. Es una simulación de roles para la actividad, sin autenticación de usuarios. El controlador rechaza aprobaciones o rechazos desde una sesión Operador. La aprobación resuelve la cuarentena; el rechazo registra automáticamente la baja de todas las existencias restantes, junto con la inspección, dentro de una sola transacción.
+4. En **4, Ventas y facturación**, registre o seleccione un cliente y confirme una venta. Se aplican FEFO, descuento del 50 % a lotes próximos a vencer e IVA académico del 19 %. La factura toma los datos reales de `informacion_empresa` y del cliente e incluye fecha de emisión, NIT, detalle, totales, CUFE y QR simulados. Los archivos quedan en `output/invoices/`.
+5. En **3, Logística → 9**, indique el ID mostrado al confirmar la venta para pasar de Registrada a En preparación. El pedido aparece en el panel. Asigne vehículo y conductor a una ruta, inicie el recorrido y confirme la entrega. No es necesario editar estados directamente en SQL.
+
+El CUFE académico se calcula como SHA-256 de `numeroFactura|fechaHoraISO|totalConDosDecimales|NIT`; esa fecha también se guarda en venta y factura. El QR contiene una URL simulada. No se envían documentos a la DIAN ni se afirma una habilitación fiscal real.
+
+## SQL, datos y diagramas
+
+El DDL se contrastó con el [SQL oficial de la actividad](https://drive.google.com/file/d/1pvak9x6hoFD2jkSmy7avQKkKqpOffgcm/view). Su SHA-256 es `d1261f039aa022a46757e2bb2eea1f01e745f366b32a9c5a91625499d0525f61`. Se conservan las 22 tablas originales y se añade `operaciones_merma`, para evitar descontar dos veces la misma pérdida al reintentar. El consolidado no elimina datos existentes; se utiliza una base vacía para una instalación nueva. No vuelva a ejecutarlo sobre una base ya poblada.
+
+El consolidado contiene 55 proveedores, 50 productos, 80 lotes y 50 clientes, ventas, detalles y facturas, con referencias y existencias verificadas. El mínimo del enunciado corresponde a las tablas principales; los catálogos de estados y la información de empresa tienen sus cantidades propias. El proveedor 33 conserva el marcador `SYN-FT-900427-AG`, solicitado expresamente para datos sintetizados por la actividad. Se admite únicamente al actualizar ese registro; no es un NIT fiscal real ni una regla general de validación.
+
+`docs/diagrama_er.png` muestra las 23 tablas, atributos y 24 relaciones. `docs/diagrama_clases.png` cubre las 25 clases y enums de los cuatro paquetes `model`. Ambos incluyen SVG ampliable y fuente DOT. Para regenerarlos, desde `docs/tools`: `npm ci` y `npm run generate`. Node.js se necesita solo para regenerar documentación, no para ejecutar el ERP.
+
+Se conservan también los diagramas por módulo aportados por el equipo y su diagrama general anterior en `docs/diagrama_clases_equipo.png`. El diagrama global regenerable refleja las clases de la versión corregida.
+
+## Pruebas y entrega
+
+`mvn clean verify` ejecuta las pruebas de validación y consola. Las que requieren MySQL se omiten si no se define `ERP_TEST_SCHEMA_FILE`; ese resultado por sí solo no acredita persistencia. Para habilitarlas utilice un servidor local dedicado, una base **vacía y nueva** cuyo nombre comience por `erp_inventory_test_`, y una cuenta con permisos para crear bases de prueba:
+
+```powershell
+$env:ERP_DB_URL = 'jdbc:mysql://127.0.0.1:13362/erp_inventory_test_primera_ejecucion?createDatabaseIfNotExist=true&serverTimezone=America/Bogota'
+$env:ERP_DB_USER = 'usuario_pruebas'
+$env:ERP_DB_PASSWORD = 'clave_pruebas'
+$env:ERP_TEST_SCHEMA_FILE = (Resolve-Path docs/database.sql).Path
+mvn clean verify
+```
+
+Para repetir, cambie el nombre de la base inicial por uno nuevo. Las pruebas conservan sus esquemas para inspección y omiten las instrucciones CREATE DATABASE/USE del archivo oficial. Comprueban transacciones, rollback, concurrencia, inspecciones, mermas, referencias y el DML consolidado completo. El recorrido adicional de los cuatro módulos se ejecuta con:
+
+```powershell
+./docs/tools/verify-integration.ps1 -TestServerUrl 'jdbc:mysql://127.0.0.1:13362/'
+```
+
+El script crea un nombre de prueba nuevo; no requiere modificar estados a mano. Consulte resultados y límites en `docs/verificacion_integrada.md`. La interfaz de NetBeans debe abrirse con JDK 17 y las mismas variables; la compilación comprobada se realizó mediante Maven.
+
+Para la entrega final, el propietario debe comprobar el acceso del trainer como colaborador del repositorio privado y comunicar el hash completo del commit elegido (`git rev-parse HEAD`). Las correcciones de `fix/integrated-release-validation` están integradas en `main`, junto con los diagramas aportados posteriormente por el equipo.

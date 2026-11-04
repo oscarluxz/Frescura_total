@@ -13,18 +13,23 @@ public class InspectionMySqlTest extends QualityMySqlSupport {
         dao.quarantine(lot, "Revisión", "Junior");
         int rejected = dao.inspect(lot, false, "Ana", "Envase dañado", "Primera revisión");
         assertEquals(LotStatus.IN_QUARANTINE, dao.refreshLot(lot, dao.today()));
-        int approved = dao.inspect(lot, true, "Luis", null, "Corregido");
-        assertEquals(LotStatus.NEAR_EXPIRY, dao.refreshLot(lot, dao.today()));
+        try (Connection connection = jdbc.open()) {
+            assertEquals(0, jdbc.lockLot(connection, lot).getQuantity().signum());
+        }
         List<Inspection> history = dao.inspectionHistory(lot);
-        assertEquals(2, history.size());
+        assertEquals(1, history.size());
         assertEquals(rejected, history.get(0).getId());
         assertEquals("Rechazado", history.get(0).getResult());
         assertEquals("Envase dañado", history.get(0).getRejectionReason());
         assertEquals("Ana", history.get(0).getInspector());
-        assertEquals(approved, history.get(1).getId());
-        assertEquals("Aprobado", history.get(1).getResult());
+        assertEquals(1, count("registro_mermas"));
         try { dao.inspect(lot, true, "Ana", null, null); fail(); }
         catch (SQLException expected) { assertTrue(expected.getMessage().contains("pendiente")); }
+        int otherLot = addLot(dao.today().plusDays(7));
+        dao.quarantine(otherLot, "Revisión", "Junior");
+        dao.inspect(otherLot, true, "Luis", null, "Sin defectos");
+        assertEquals(LotStatus.NEAR_EXPIRY, dao.refreshLot(otherLot, dao.today()));
+        assertEquals("Aprobado", dao.inspectionHistory(otherLot).get(0).getResult());
     }
 
     @Test public void approvalNeverMakesExpiredLotSellable() throws Exception {
@@ -32,6 +37,21 @@ public class InspectionMySqlTest extends QualityMySqlSupport {
         dao.quarantine(lot, "Vencimiento", "Junior");
         dao.inspect(lot, true, "Ana", null, null);
         assertEquals(LotStatus.EXPIRED, dao.refreshLot(lot, dao.today()));
+    }
+
+    @Test public void rejectionAndWasteRollbackTogetherWhenWasteInsertFails() throws Exception {
+        int lot = addLot(dao.today().plusDays(30));
+        dao.quarantine(lot, "Revisión", "Junior");
+        try (Connection connection = jdbc.open(); Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER fail_rejected_waste BEFORE INSERT ON registro_mermas FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Forced rejection failure'");
+        }
+        try { dao.inspect(lot, false, "Ana", "Daño", null); fail(); }
+        catch (SQLException expected) { assertTrue(expected.getMessage().contains("Forced rejection failure")); }
+        assertEquals(0, count("inspecciones_calidad"));
+        assertEquals(0, count("registro_mermas"));
+        try (Connection connection = jdbc.open()) {
+            assertEquals(0, new java.math.BigDecimal("10").compareTo(jdbc.lockLot(connection, lot).getQuantity()));
+        }
     }
 
     @Test public void validatesRejectionAndRollsBackFailedApproval() throws Exception {

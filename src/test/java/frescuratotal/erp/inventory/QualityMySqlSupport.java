@@ -45,13 +45,7 @@ public class QualityMySqlSupport {
     }
 
     private void executeSchema(Statement statement, Path path) throws Exception {
-        String source = Files.readString(path).replaceAll("(?m)^--.*$", "");
-        for (String sql : source.split(";")) {
-            String command = sql.trim();
-            if (command.startsWith("CREATE TABLE") || command.startsWith("INSERT INTO")) {
-                statement.execute(command);
-            }
-        }
+        frescuratotal.erp.support.SqlTestDatabase.minimal(statement, path);
     }
 
     protected int addLot(LocalDate expiration) throws SQLException {
@@ -70,6 +64,17 @@ public class QualityMySqlSupport {
         try (Connection connection = jdbc.open(); Statement statement = connection.createStatement();
              ResultSet result = statement.executeQuery("SELECT COUNT(*) FROM " + table)) {
             result.next(); return result.getInt(1);
+        }
+    }
+
+    // Historical pending rejections must still support manual, partial waste records.
+    protected int addHistoricalRejection(int lot, String reason) throws SQLException {
+        try (Connection connection = jdbc.open(); PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO inspecciones_calidad(id_lote,resultado,nombre_inspector,motivo_rechazo) VALUES(?,'Rechazado','Ana',?)", Statement.RETURN_GENERATED_KEYS)) {
+            statement.setInt(1, lot);
+            statement.setString(2, reason);
+            statement.executeUpdate();
+            try (ResultSet result = statement.getGeneratedKeys()) { result.next(); return result.getInt(1); }
         }
     }
 }

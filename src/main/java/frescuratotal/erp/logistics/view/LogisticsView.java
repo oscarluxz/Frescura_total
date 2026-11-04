@@ -38,6 +38,7 @@ public class LogisticsView {
             System.out.println("6. Listar rutas / detalle de ruta");
             System.out.println("7. Vehículos");
             System.out.println("8. Conductores");
+            System.out.println("9. Pasar venta registrada a En preparación");
             System.out.println("0. Volver");
             int option = readInt("Opción: ");
             try {
@@ -67,6 +68,10 @@ public class LogisticsView {
                         break;
                     case 8:
                         driversMenu();
+                        break;
+                    case 9:
+                        controller.prepareSale(readInt("ID de la venta registrada: "));
+                        System.out.println("Venta en preparación; ya aparece en el panel de despacho.");
                         break;
                     case 0:
                         back = true;

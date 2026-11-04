@@ -30,7 +30,7 @@ public class InvoiceFileService {
             return new SaleReceipt(receipt.saleId(), receipt.saleNumber(), receipt.invoiceNumber(),
                     receipt.cufe(), receipt.customerName(), receipt.customerDocument(), receipt.lines(),
                     receipt.subtotal(), receipt.discount(), receipt.tax(),
-                    receipt.total(), pdf, qr);
+                    receipt.total(), pdf, qr, receipt.getCompany(), receipt.getIssuedAt(), receipt.getCustomerAddress());
         } catch (Exception e) {
             deleteIfExists(pdf, e);
             deleteIfExists(qr, e);
@@ -67,19 +67,25 @@ public class InvoiceFileService {
         try {
             PdfWriter.getInstance(document, Files.newOutputStream(pdf));
             document.open();
-            document.add(new Paragraph("FRESCURA TOTAL S.A.S."));
-            document.add(new Paragraph("Electronic invoice: " + receipt.invoiceNumber()));
-            document.add(new Paragraph("Sale: " + receipt.saleNumber()));
-            document.add(new Paragraph("Customer: " + receipt.customerName()));
-            document.add(new Paragraph("Document: " + receipt.customerDocument()));
+            document.add(new Paragraph(receipt.getCompany().getName()));
+            document.add(new Paragraph("NIT: " + receipt.getCompany().getNit()));
+            document.add(new Paragraph("Dirección: " + receipt.getCompany().getAddress()));
+            document.add(new Paragraph("Contacto: " + receipt.getCompany().getPhone() + " | " + receipt.getCompany().getEmail()));
+            document.add(new Paragraph("Factura electrónica simulada: " + receipt.invoiceNumber()));
+            document.add(new Paragraph("Fecha de emisión (Bogotá): " + receipt.getIssuedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+            document.add(new Paragraph("Venta: " + receipt.saleNumber()));
+            document.add(new Paragraph("Cliente: " + receipt.customerName()));
+            document.add(new Paragraph("Documento: " + receipt.customerDocument()));
+            document.add(new Paragraph("Dirección del cliente: " + receipt.getCustomerAddress()));
+            document.add(new Paragraph(" "));
             PdfPTable table = new PdfPTable(6);
             table.setWidthPercentage(100);
-            table.addCell("Product / lot");
-            table.addCell("Quantity");
-            table.addCell("Unit price");
-            table.addCell("Discount");
+            table.addCell("Producto / lote");
+            table.addCell("Cantidad");
+            table.addCell("Precio unitario");
+            table.addCell("Descuento");
             table.addCell("IVA");
-            table.addCell("Line total");
+            table.addCell("Total línea");
             for (var line : receipt.lines()) {
                 table.addCell(line.productName() + " / " + line.lotId());
                 table.addCell(line.quantity().toPlainString());
@@ -90,10 +96,11 @@ public class InvoiceFileService {
             }
             document.add(table);
             document.add(new Paragraph("Subtotal: " + receipt.subtotal()));
-            document.add(new Paragraph("Discount: " + receipt.discount()));
+            document.add(new Paragraph("Descuento: " + receipt.discount()));
             document.add(new Paragraph("IVA (19%): " + receipt.tax()));
             document.add(new Paragraph("Total: " + receipt.total()));
-            document.add(new Paragraph("Simulated CUFE: " + receipt.cufe()));
+            document.add(new Paragraph("CUFE simulado: " + receipt.cufe()));
+            document.add(new Paragraph("Documento académico de prueba. Sin validación ni autorización de la DIAN."));
             document.add(new Paragraph(" "));
             document.add(Image.getInstance(qr.toAbsolutePath().toString()));
         } catch (Exception e) {

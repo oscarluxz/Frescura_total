@@ -1,199 +1,88 @@
-# ERP Frescura Total — Core, Inventarios y Calidad
+# Inventario y calidad — ERP Frescura Total integrado
 
-Módulo de Junior, independiente en `feature/core-inventory-quality`.
-Java 17, Maven, MySQL y arquitectura MVC con POO clásica, encapsulación,
-colecciones, excepciones, JDBC, Singleton y separación de responsabilidades.
-No utiliza frameworks de persistencia ni records.
+El módulo de Junior está integrado con ventas, proveedores y logística. Utiliza
+Java 17, Maven, JDBC y POO clásica, sin records ni frameworks de persistencia.
+La configuración general y el recorrido completo están en el README principal.
 
-## Funcionalidades
+## Operaciones de consola
 
-| Opción | Función |
+| Opción de inventario | Operación |
 | --- | --- |
-| 1 | Registrar lote con proveedor, producto, precios, cantidades y ubicación |
-| 2 | Persistir estados según vencimiento, conservando cuarentenas |
-| 3 | Consultar existencias, vencimientos y estados |
+| 1 | Registrar lote con producto y proveedor asociados, cantidades, precios, fecha y ubicación |
+| 2 | Actualizar vencimientos conservando cuarentenas |
+| 3 | Consultar existencias, alertas y vencidos pendientes de baja |
 | 4 | Registrar cuarentena con motivo y responsable |
-| 5 | Registrar inspección aprobada o rechazada con inspector y notas |
-| 6 | Registrar merma con transacción y clave para reintentos |
-| 7 | Rastrear proveedor original y clientes con entregas del lote |
-| 8 | Consultar lotes de un proveedor |
-| 9 | Consultar lotes recibidos por un cliente |
+| 5 | Aprobar o rechazar como Inspector |
+| 6 | Registrar merma con clave de operación para reintentos |
+| 7 | Rastrear proveedor original y clientes con entregas confirmadas |
+| 8 / 9 | Consultar lotes por proveedor o cliente |
 | 10 | Consultar historial de inspecciones |
 
-Los nombres Java y comentarios están en inglés; la consola, documentación y SQL
-de la actividad están en español. Las tablas mantienen sus nombres originales.
+Abra `frescuratotal.erp.Main`. Su opción 5 cambia el rol de demostración:
+Operador (inicial) o Inspector. La selección es una simulación académica, sin
+autenticación. El controlador de calidad verifica el rol antes de acceder a JDBC;
+escribir un nombre de inspector en una sesión Operador no concede autorización.
 
-## Base de datos
+Al entrar al menú principal se simula la revisión diaria. Se repite automáticamente
+al cambiar la fecha de Bogotá mientras se navega por ese menú. La opción 2 de
+inventario permite forzar otra revisión. No se instala una tarea ni servicio del sistema.
 
-Para una instalación **nueva**, ejecutar `docs/database.sql` desde MySQL Workbench
-o el cliente MySQL. Incluye 23 tablas, sus catálogos iniciales y 24 claves
-foráneas. No incluye DROP DATABASE ni datos comerciales de prueba.
+## Estados y calidad
 
-Si ya existe el esquema de la actividad, **no volver a cargar el archivo completo**:
-seleccionar la base existente y ejecutar únicamente
-`docs/migrations/001_waste_operations.sql`. Esa extensión crea una tabla con la
-clave única de cada baja y su relación con `registro_mermas`; no elimina ni
-modifica tablas o registros existentes. Es necesaria antes de registrar mermas.
+- Vence hoy o antes: EXPIRED / Vencido, bloqueado para ventas. Si quedan existencias,
+  la consulta lo marca como PENDIENTE DE BAJA. Se registran mediante la opción 6.
+- Entre mañana y siete días: NEAR_EXPIRY / Proximo a Vencer, con alerta.
+- Después de siete días: AVAILABLE / Disponible.
+- La cuarentena prevalece sobre el calendario. Solo una inspección aprobada
+  resuelve una cuarentena y calcula el estado por fecha; un vencido no se libera para ventas.
+- Un rechazo nuevo registra la inspección, la merma de todo el saldo, su clave de
+  operación, la cantidad cero y la resolución de la cuarentena en la misma
+  transacción. El lote conserva En Cuarentena como bloqueo histórico, sin stock.
+  No se permite aprobarlo después ni registrar otra baja de esas unidades.
+- Las mermas manuales permiten pérdidas parciales y totales. Validan DECIMAL(10,2),
+  saldo suficiente y responsable. Si hay fallo, se revierte tanto el stock como
+  el historial.
+- La misma clave y los mismos datos devuelven la merma anterior sin descontar otra
+  vez. Otra cantidad, motivo o responsable con esa clave se rechaza. Dos claves
+  diferentes representan operaciones diferentes.
+- Se mantiene compatibilidad con inspecciones históricas rechazadas pendientes
+  de baja: la inspección debe ser la última del mismo lote, con cuarentena abierta
+  y sin otra merma asociada.
+- La trazabilidad de clientes incluye únicamente ventas Entregada, a través de
+  detalles_venta → ventas → clientes.
 
-El SQL base se recuperó de `ERP_FrescuraTotal_Junior.zip`, ruta interna
-`frescura-total-junior/docs/database.sql`. Se conservaron sus tablas, tipos,
-relaciones y catálogos; se retiró el borrado de la base y se añadió la extensión
-de mermas. El chat no contenía un original del docente recuperable: si se recibe
-otra versión oficial, comparar antes de integrarla.
+## Integración JDBC
 
-El diagrama `docs/diagrama_er.png` incluye atributos, tipos, PK, FK, UQ,
-nulabilidad y cardinalidades del DDL. También hay SVG ampliable y fuente DOT.
-Los cardinales representan restricciones reales del esquema, no supuestos de
-negocio adicionales. Las tablas de inventario aparecen en verde.
+`InventoryLotSaleValidator` adapta la interfaz `LotSaleValidator` de ventas.
+Ventas le pasa su misma conexión, con auto-commit desactivado, antes de descontar
+el lote. La validación bloquea la fila hasta commit/rollback, actualiza su estado
+y rechaza cuarentenas, vencidos, cantidades inválidas y saldo insuficiente.
+No descuenta stock por sí sola; lo hace la transacción de ventas junto al detalle,
+factura y generación de archivos.
 
-## Configuración y ejecución
+Los catálogos de proveedores/productos y el historial de ingresos usan las
+relaciones del esquema oficial. El DDL original se contrastó con la descarga
+oficial del enunciado. `docs/database.sql` contiene las 22 tablas de origen,
+la extensión `operaciones_merma` y datos coherentes de los cuatro módulos.
 
-Requisitos: JDK 17, Maven y un servidor MySQL con el esquema instalado. Antes de
-registrar lotes deben existir un producto, su proveedor y la relación
-`productos_proveedor`; esos datos se gestionan con el equipo de proveedores.
+Para una instalación nueva use una base vacía y el consolidado. Si la base ya
+tiene el esquema original, la extensión de mermas está separada en
+`docs/migrations/001_waste_operations.sql`; no vuelva a cargar todos los INSERT.
+Las variables de conexión son `ERP_DB_PASSWORD`, `ERP_DB_USER`, `ERP_DB_HOST`,
+`ERP_DB_PORT`, `ERP_DB_NAME` y, opcionalmente, `ERP_DB_URL`. No se carga
+automáticamente un archivo .env.
 
-Definir en el entorno `ERP_DB_PASSWORD` y, según el equipo:
+## Verificación y diagramas
 
-| Variable | Valor predeterminado |
-| --- | --- |
-| `ERP_DB_HOST` | `localhost` |
-| `ERP_DB_PORT` | `3306` |
-| `ERP_DB_NAME` | `erp_frescura_total` |
-| `ERP_DB_USER` | `root` |
-| `ERP_DB_URL` | Opcional; reemplaza host, puerto y nombre |
+Las instrucciones reproducibles y el resultado actual están en
+`docs/verificacion_integrada.md` y en el README principal. La suite comprueba
+fechas límite, bloqueos, rechazo con baja atómica, rollback por fallo provocado,
+idempotencia y concurrencia de mermas, inspecciones históricas, trazabilidad,
+claves foráneas y carga del consolidado. El recorrido adicional comprueba FEFO,
+factura/QR, concurrencia de ventas y venta → preparación → ruta → entrega.
 
-La contraseña no tiene valor predeterminado. No escribirla en Java, en la URL ni
-en archivos versionados. El programa lee el entorno del proceso; no carga `.env`
-automáticamente. Para conexiones personalizadas usar la zona `America/Bogota`.
-
-Desde la raíz del proyecto:
-
-```powershell
-mvn clean verify
-mvn exec:java
-```
-
-La clase principal es `frescuratotal.erp.Main`; el módulo también tiene la entrada
-`frescuratotal.erp.inventory.view.InventoryConsoleView`. El JAR generado en
-`target` no contiene sus dependencias: usar Maven para ejecutarlo con Connector/J.
-
-## NetBeans
-
-1. Abrir **File > Open Project** y seleccionar la carpeta que contiene `pom.xml`.
-2. Registrar un JDK 17 en **Tools > Java Platforms**, si no está disponible.
-3. Elegir ese JDK para el proyecto y para la ejecución de Maven. El POM fija
-   `maven.compiler.release=17` y las versiones de compilación, pruebas y ejecución.
-   `.mvn/jvm.config` fija UTF-8 para que las tildes de la consola sean legibles.
-4. Definir las variables de conexión antes de iniciar NetBeans, o configurarlas
-   en su entorno de ejecución. Reiniciar NetBeans si estaba abierto cuando se
-   cambiaron las variables.
-5. Ejecutar **Clean and Build**. Para la consola, ejecutar `Main.java`, o agregar
-   la acción Maven `exec:java` del proyecto. Se mostrará el menú de inventario.
-
-En este equipo se verificó con Temurin 17.0.21+9 descargado en
-`C:\Users\jr846\Documents\Codex\2026-11-03\referenced-chatgpt-conversation-this-is-an\work\java17\jdk-17.0.21+9`.
-No se cambió el Java predeterminado del sistema. La verificación se hizo por Maven;
-no se automatizó la interfaz de NetBeans.
-
-## Reglas de negocio
-
-- Vence hoy o antes: `EXPIRED` / `Vencido`, bloqueado para ventas.
-- Vence entre mañana y siete días: `NEAR_EXPIRY` / `Proximo a Vencer`.
-- Vence después de siete días: `AVAILABLE` / `Disponible`.
-- `IN_QUARANTINE` / `En Cuarentena` prevalece sobre las fechas hasta una aprobación.
-- Una aprobación resuelve la cuarentena y calcula otra vez el estado por fecha.
-  Un lote vencido permanece bloqueado aunque la inspección sea aprobada.
-- Un rechazo queda en el historial y conserva la cuarentena. No descuenta stock
-  automáticamente: la pérdida se registra una sola vez mediante una merma.
-- Toda merma valida cantidad positiva, máximo dos decimales y stock suficiente.
-  Bloquea la fila del lote y guarda descuento, historial y clave en una transacción.
-- Repetir la misma clave y los mismos datos devuelve el registro anterior. Usar
-  esa clave con otros datos se rechaza. Cada inspección rechazada vigente admite
-  una baja; las inspecciones antiguas resueltas no sirven para otra baja.
-- Para mermas sin inspección, el responsable debe conservar la clave de la misma
-  pérdida. Dos claves distintas representan dos operaciones distintas.
-- Una pérdida parcial de un lote en cuarentena no libera el resto del lote;
-  requiere inspección. Un lote sin existencias nunca pasa la validación de venta.
-- La trazabilidad de clientes usa `detalles_venta -> ventas -> clientes` y solo
-  ventas `Entregada`. No atribuye entregas a ventas registradas o canceladas.
-
-## Pruebas reproducibles
-
-`mvn clean verify` sin `ERP_TEST_SCHEMA_FILE` ejecuta 12 pruebas sin MySQL y omite
-las 16 de integración. Ese resultado por sí solo no acredita la persistencia.
-
-Para la prueba completa, preparar una instancia MySQL **de prueba**, nunca una
-base comercial. La cuenta necesita permisos para crear bases de prueba. Configurar
-`ERP_DB_URL` con una base vacía cuyo nombre empiece por `erp_inventory_test_`
-(puede usarse `createDatabaseIfNotExist=true`), `ERP_DB_USER` y
-`ERP_DB_PASSWORD`. Después:
-
-```powershell
-$env:ERP_TEST_SCHEMA_FILE = (Resolve-Path docs/database.sql).Path
-mvn clean verify
-```
-
-Cada ejecución requiere una base inicial vacía con nombre nuevo. Las pruebas
-adicionales crean sus propios esquemas aleatorios con ese prefijo. Se conservan
-para inspección; ninguna prueba borra la base de trabajo del usuario. No se
-ejecutan las instrucciones CREATE DATABASE/USE del archivo SQL sobre otra base.
-En PowerShell antiguo, una variable con cadena vacía puede eliminarse: usar
-PowerShell 7 o una contraseña no vacía para el usuario de pruebas.
-
-Resultado completo comprobado: **28 pruebas, cero fallos, cero errores y cero
-omitidas**, con JDK 17.0.21+9, Maven 3.9.16, MySQL Community 26.7.0-er y
-Connector/J 8.4.0. Incluye fechas límite, bloqueos de venta, transacciones y
-rollback, cuarentenas, inspecciones, referencias antiguas, reintentos concurrentes,
-mermas simultáneas, trazabilidad, DDL y un recorrido completo del menú. No se
-ejecutó contra la base comercial del usuario ni contra un servidor MySQL 8.x.
-
-## Integración pendiente del equipo
-
-El módulo de Junior está implementado y probado de forma independiente. El flujo
-de ventas de Thomas debe llamar al control de inventario dentro de **su misma
-conexión y transacción**, antes de descontar stock e insertar detalles:
-
-```java
-connection.setAutoCommit(false);
-InventoryQualityDAO inventory = new InventoryQualityDAO();
-inventory.assertSellable(connection, lotId, quantity);
-// Deduct stock and insert sale details using this same connection.
-// Commit all changes together, or roll back the entire sale on any failure.
-```
-
-`assertSellable` conserva el bloqueo del lote hasta commit/rollback. Rechaza
-autocommit, vencidos, cuarentenas y cantidades insuficientes; no descuenta por sí
-misma. Thomas debe agrupar cantidades por lote y bloquearlos por ID ascendente,
-usar un UPDATE condicionado a stock suficiente y comprobar la fila afectada.
-Una consulta previa en otra conexión no protege contra ventas concurrentes.
-También debe conservar correctamente las relaciones de detalle y el estado de
-venta para que la trazabilidad sea real. La integración de ventas no se declara
-terminada ni se modificó su rama.
-
-Oscar debe mantener proveedores, productos y su catálogo relacionado. Su rama usa
-la misma ruta `frescuratotal.erp.common.DatabaseConnection` con otra configuración;
-debe acordarse la implementación compartida al integrar. Thomas usa además el
-prefijo `com.frescuratotal.erp`; debe unificarse con `frescuratotal.erp`.
-
-Se revisaron las ramas de Oscar (`3b6c488`) y Thomas (`cea91e7`). No se modificaron.
-No se hizo merge a `develop` ni a `main`. Al comenzar esta continuación, `main`
-ya contenía un merge previo `c9260f1` realizado fuera de este trabajo.
-
-## Regeneración opcional del diagrama
-
-Solo para documentación, requiere Node.js; no es una dependencia del ERP Java.
-Desde `docs/tools`, ejecutar `npm install` y `npm run generate`. El generador usa
-el SQL de la carpeta `docs` y produce PNG, SVG y DOT; no consulta ni modifica MySQL.
-
-## Archivos y estado de entrega
-
-`docs/inventory-verification.md` registra la verificación inicial del tercer
-avance; este README describe la entrega completa. Los cuatro archivos locales de
-parche se conservaron sin añadirlos al historial. La traducción local del mensaje
-de configuración JDBC se conserva e incorpora en esta entrega. Las credenciales,
-bases de pruebas, JDK descargado y dependencias de generación no se versionan.
-
-Consultar los commits reales con `git log --oneline 408a4e4..HEAD`. Las pruebas de
-integración y los contratos de conexión/ventas son los puntos de comprobación
-para la integración final del equipo; no hay fallos conocidos pendientes en el
-módulo independiente tras la verificación indicada.
+`docs/diagrama_er.png` y su SVG muestran tablas y cardinalidades. El nuevo
+`docs/diagrama_clases.png` incluye el inventario y los otros tres módulos.
+Los generadores están en `docs/tools`, fuera de la ejecución de Java.
+`docs/inventory-verification.md` se conserva como informe histórico del tercer
+avance; sus cantidades de pruebas no representan la versión integrada actual.

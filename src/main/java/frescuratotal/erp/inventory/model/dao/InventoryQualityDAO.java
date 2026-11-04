@@ -130,6 +130,35 @@ public class InventoryQualityDAO {
                 }
                 jdbc.setStatus(connection, lotId, LotStatus.forDate(lot.getExpirationDate(), today()));
             } else {
+                if (lot.getQuantity().signum() > 0) {
+                    int wasteId;
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "INSERT INTO registro_mermas(id_lote,id_inspeccion,cantidad_perdida,motivo,usuario_registro) VALUES(?,?,?,?,?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        statement.setInt(1, lotId);
+                        statement.setInt(2, id);
+                        statement.setBigDecimal(3, lot.getQuantity());
+                        statement.setString(4, checkedReason);
+                        statement.setString(5, checkedInspector);
+                        wasteId = InventoryJdbc.insertId(statement);
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "INSERT INTO operaciones_merma(clave_operacion,id_registro) VALUES(?,?)")) {
+                        statement.setString(1, "inspection-rejection-" + id);
+                        statement.setInt(2, wasteId);
+                        statement.executeUpdate();
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement("UPDATE lotes_inventario SET cantidad=0 WHERE id_lote=?")) {
+                        statement.setInt(1, lotId);
+                        statement.executeUpdate();
+                    }
+                }
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "UPDATE registro_cuarentena SET resuelta=TRUE,fecha_resolucion=CURRENT_TIMESTAMP,notas_resolucion=? WHERE id_lote=? AND resuelta=FALSE")) {
+                    statement.setString(1, "Rechazo y baja total por inspección #" + id);
+                    statement.setInt(2, lotId);
+                    if (statement.executeUpdate() == 0) { throw new SQLException("La cuarentena ya fue resuelta."); }
+                }
                 jdbc.setStatus(connection, lotId, LotStatus.IN_QUARANTINE);
             }
             return id;
