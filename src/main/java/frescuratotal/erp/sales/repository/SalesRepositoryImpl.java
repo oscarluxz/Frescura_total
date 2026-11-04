@@ -306,11 +306,161 @@ public class SalesRepositoryImpl implements SalesRepository {
         }
     }
 
-    private record CustomerRow(String name, String document) { }
-    private record LotRow(int id, String productName, LocalDate expirationDate,
-                          BigDecimal quantity, BigDecimal salePrice) { }
-    private record Allocation(int lotId, String productName, BigDecimal quantity, BigDecimal unitPrice,
-                             BigDecimal discountRate, BigDecimal discount, BigDecimal taxRate,
-                             BigDecimal tax, BigDecimal gross, BigDecimal lineTotal) { }
-    private record Totals(BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total) { }
+    private static final class CustomerRow {
+        private final String name;
+        private final String document;
+
+        private CustomerRow(String name, String document) {
+            this.name = name;
+            this.document = document;
+        }
+
+        public String name() { return name; }
+        public String getName() { return name; }
+        public String document() { return document; }
+        public String getDocument() { return document; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof CustomerRow)) { return false; }
+            CustomerRow value = (CustomerRow) other;
+            return java.util.Objects.equals(name, value.name)
+                    && java.util.Objects.equals(document, value.document);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(name, document); }
+    }
+    private static final class LotRow {
+        private final int id;
+        private final String productName;
+        private final LocalDate expirationDate;
+        private final BigDecimal quantity;
+        private final BigDecimal salePrice;
+
+        private LotRow(int id, String productName, LocalDate expirationDate, BigDecimal quantity, BigDecimal salePrice) {
+            this.id = id;
+            this.productName = productName;
+            this.expirationDate = expirationDate;
+            this.quantity = quantity;
+            this.salePrice = salePrice;
+        }
+
+        public int id() { return id; }
+        public int getId() { return id; }
+        public String productName() { return productName; }
+        public String getProductName() { return productName; }
+        public LocalDate expirationDate() { return expirationDate; }
+        public LocalDate getExpirationDate() { return expirationDate; }
+        public BigDecimal quantity() { return quantity; }
+        public BigDecimal getQuantity() { return quantity; }
+        public BigDecimal salePrice() { return salePrice; }
+        public BigDecimal getSalePrice() { return salePrice; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof LotRow)) { return false; }
+            LotRow value = (LotRow) other;
+            return id == value.id
+                    && java.util.Objects.equals(productName, value.productName)
+                    && java.util.Objects.equals(expirationDate, value.expirationDate)
+                    && java.util.Objects.equals(quantity, value.quantity)
+                    && java.util.Objects.equals(salePrice, value.salePrice);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(id, productName, expirationDate, quantity, salePrice); }
+    }
+    private static final class Allocation {
+        private final int lotId;
+        private final String productName;
+        private final BigDecimal quantity;
+        private final BigDecimal unitPrice;
+        private final BigDecimal discountRate;
+        private final BigDecimal discount;
+        private final BigDecimal taxRate;
+        private final BigDecimal tax;
+        private final BigDecimal gross;
+        private final BigDecimal lineTotal;
+
+        private Allocation(int lotId, String productName, BigDecimal quantity, BigDecimal unitPrice, BigDecimal discountRate, BigDecimal discount, BigDecimal taxRate, BigDecimal tax, BigDecimal gross, BigDecimal lineTotal) {
+            this.lotId = lotId;
+            this.productName = productName;
+            this.quantity = quantity;
+            this.unitPrice = unitPrice;
+            this.discountRate = discountRate;
+            this.discount = discount;
+            this.taxRate = taxRate;
+            this.tax = tax;
+            this.gross = gross;
+            this.lineTotal = lineTotal;
+        }
+
+        public int lotId() { return lotId; }
+        public int getLotId() { return lotId; }
+        public String productName() { return productName; }
+        public String getProductName() { return productName; }
+        public BigDecimal quantity() { return quantity; }
+        public BigDecimal getQuantity() { return quantity; }
+        public BigDecimal unitPrice() { return unitPrice; }
+        public BigDecimal getUnitPrice() { return unitPrice; }
+        public BigDecimal discountRate() { return discountRate; }
+        public BigDecimal getDiscountRate() { return discountRate; }
+        public BigDecimal discount() { return discount; }
+        public BigDecimal getDiscount() { return discount; }
+        public BigDecimal taxRate() { return taxRate; }
+        public BigDecimal getTaxRate() { return taxRate; }
+        public BigDecimal tax() { return tax; }
+        public BigDecimal getTax() { return tax; }
+        public BigDecimal gross() { return gross; }
+        public BigDecimal getGross() { return gross; }
+        public BigDecimal lineTotal() { return lineTotal; }
+        public BigDecimal getLineTotal() { return lineTotal; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof Allocation)) { return false; }
+            Allocation value = (Allocation) other;
+            return lotId == value.lotId
+                    && java.util.Objects.equals(productName, value.productName)
+                    && java.util.Objects.equals(quantity, value.quantity)
+                    && java.util.Objects.equals(unitPrice, value.unitPrice)
+                    && java.util.Objects.equals(discountRate, value.discountRate)
+                    && java.util.Objects.equals(discount, value.discount)
+                    && java.util.Objects.equals(taxRate, value.taxRate)
+                    && java.util.Objects.equals(tax, value.tax)
+                    && java.util.Objects.equals(gross, value.gross)
+                    && java.util.Objects.equals(lineTotal, value.lineTotal);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(lotId, productName, quantity, unitPrice, discountRate, discount, taxRate, tax, gross, lineTotal); }
+    }
+    private static final class Totals {
+        private final BigDecimal subtotal;
+        private final BigDecimal discount;
+        private final BigDecimal tax;
+        private final BigDecimal total;
+
+        private Totals(BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total) {
+            this.subtotal = subtotal;
+            this.discount = discount;
+            this.tax = tax;
+            this.total = total;
+        }
+
+        public BigDecimal subtotal() { return subtotal; }
+        public BigDecimal getSubtotal() { return subtotal; }
+        public BigDecimal discount() { return discount; }
+        public BigDecimal getDiscount() { return discount; }
+        public BigDecimal tax() { return tax; }
+        public BigDecimal getTax() { return tax; }
+        public BigDecimal total() { return total; }
+        public BigDecimal getTotal() { return total; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) { return true; }
+            if (!(other instanceof Totals)) { return false; }
+            Totals value = (Totals) other;
+            return java.util.Objects.equals(subtotal, value.subtotal)
+                    && java.util.Objects.equals(discount, value.discount)
+                    && java.util.Objects.equals(tax, value.tax)
+                    && java.util.Objects.equals(total, value.total);
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(subtotal, discount, tax, total); }
+    }
 }
