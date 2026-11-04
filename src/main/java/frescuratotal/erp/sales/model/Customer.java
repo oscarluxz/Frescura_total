@@ -88,7 +88,7 @@ public class Customer {
     
     @Override
     public String toString() {
-        return id + " | " + name + " | " + document + " | " + customerType;
+        return id + " | " + name + " | " + document + " | " + (customerType == null ? "" : customerType.getLabel());
     }
     
 }

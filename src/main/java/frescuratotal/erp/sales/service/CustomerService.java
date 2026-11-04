@@ -32,7 +32,7 @@ public class CustomerService {
             throw new IllegalArgumentException("El tipo de cliente es obligatorio");
         }
         repository.save(customer);
-        LOGGER.info("Customer registered.");
+        LOGGER.info("Cliente registrado.");
     }   
     
     public Customer findById(int id) {
@@ -44,7 +44,7 @@ public class CustomerService {
     }
     
     public List<Customer> findAll() {
-        LOGGER.info("Customer list requested.");
+        LOGGER.info("Se solicitó la lista de clientes.");
         return repository.findAll();
     }
     
@@ -61,13 +61,13 @@ public class CustomerService {
             throw new IllegalArgumentException("El tipo de cliente es obligatorio");
         }
         repository.update(customer);
-        LOGGER.info(() -> "Customer updated. ID=" + customer.getId());
+        LOGGER.info(() -> "Cliente actualizado. ID=" + customer.getId());
     }   
     
     public void deleteCustomer(int id) {
         findById(id);
         repository.delete(id);
-        LOGGER.info(() -> "Customer deleted. ID=" + id);
+        LOGGER.info(() -> "Cliente eliminado. ID=" + id);
     }
 }
     

@@ -112,15 +112,15 @@ public class SalesRepositoryImpl implements SalesRepository {
                 throw e;
             }
         } catch (SQLException | RuntimeException e) {
-            LOGGER.log(Level.SEVERE, "Sale registration failed for customer ID " + customerId, e);
+            LOGGER.log(Level.SEVERE, "Falló el registro de la venta para el cliente ID " + customerId, e);
             if (e instanceof IllegalArgumentException) {
                 throw (IllegalArgumentException) e;
             }
             throw new IllegalStateException("No se pudo registrar la venta: " + e.getMessage(), e);
         }
 
-        LOGGER.info("Registered sale " + completeReceipt.saleNumber()
-                + " and invoice " + completeReceipt.invoiceNumber());
+        LOGGER.info("Venta registrada " + completeReceipt.saleNumber()
+                + " y factura " + completeReceipt.invoiceNumber());
         return completeReceipt;
     }
 
