@@ -1,38 +1,40 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package frescuratotal.erp.common;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-/**
- * Singleton that centralizes the database configuration.
- * Shared by the whole team: if a teammate already created it, keep theirs.
- */
 public final class DatabaseConnection {
 
-    // Example credentials: change them to match your local MySQL.
-    private static final String URL =
-            "jdbc:mysql://localhost:3306/erp_frescura_total?useSSL=false&serverTimezone=America/Bogota";
-    private static final String USER = "root";
-    private static final String PASSWORD = "root";
+    private static final DatabaseConnection INSTANCE = new DatabaseConnection();
 
-    private static DatabaseConnection instance;
-
-    private DatabaseConnection() { }
-
-    public static synchronized DatabaseConnection getInstance() {
-        if (instance == null) {
-            instance = new DatabaseConnection();
-        }
-        return instance;
+    private DatabaseConnection() {
     }
 
-    /** Returns a NEW connection; callers must close it (try-with-resources). */
+    public static DatabaseConnection getInstance() {
+        return INSTANCE;
+    }
+
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        String password = System.getenv("ERP_DB_PASSWORD");
+        if (password == null) {
+            throw new SQLException("Configura la variable ERP_DB_PASSWORD antes de conectar con MySQL.");
+        }
+
+        String url = setting("ERP_DB_URL", null);
+        if (url == null) {
+            String host = setting("ERP_DB_HOST", "localhost");
+            String port = setting("ERP_DB_PORT", "3306");
+            String database = setting("ERP_DB_NAME", "erp_frescura_total");
+            url = "jdbc:mysql://" + host + ":" + port + "/" + database
+                    + "?serverTimezone=America/Bogota";
+        }
+
+        return DriverManager.getConnection(url, setting("ERP_DB_USER", "root"), password);
+    }
+
+    private static String setting(String name, String fallback) {
+        String value = System.getenv(name);
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
