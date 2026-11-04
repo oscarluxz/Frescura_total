@@ -1,0 +1,45 @@
+digraph SalesBilling {
+  rankdir=LR;
+  node [shape=record, fontname="Arial"];
+
+  Customer [label="{Customer|id, name, document, email, phone, address, type}"];
+  CustomerType [label="{CustomerType|WHOLESALE, RETAIL}"];
+  SaleItem [label="{SaleItem|productId, quantity}"];
+  AvailableProduct [label="{AvailableProduct|id, name, unit, stock, startingPrice}"];
+  InvoiceLine [label="{InvoiceLine|product, lot, quantity, prices, discount, tax}"];
+  SaleReceipt [label="{SaleReceipt|sale, invoice, CUFE, totals, files, lines}"];
+  CustomerView [label="{CustomerView|menu, prompts, messages}"];
+  SalesView [label="{SalesView|sale menu, cart input, receipt output}"];
+  CustomerController [label="{CustomerController|start, CRUD routing}"];
+  SalesController [label="{SalesController|start, confirmSale}"];
+  CustomerService [label="{CustomerService|validation, CRUD operations}"];
+  SalesService [label="{SalesService|sale validation}"];
+  CustomerRepository [label="{CustomerRepository (interface)|save, find, update, delete}"];
+  CustomerRepositoryImpl [label="{CustomerRepositoryImpl|JDBC customer CRUD}"];
+  SalesRepository [label="{SalesRepository (interface)|find products, register sale}"];
+  SalesRepositoryImpl [label="{SalesRepositoryImpl|JDBC transaction, stock deduction}"];
+  SaleAllocationPolicy [label="{SaleAllocationPolicy|FEFO, discount, IVA}"];
+  LotSaleValidator [label="{LotSaleValidator|assertSellable(connection, lotId, qty)}"];
+  InvoiceFileService [label="{InvoiceFileService|generate QR and PDF}"];
+
+  Customer -> CustomerType;
+  CustomerView -> Customer;
+  CustomerController -> CustomerView;
+  CustomerController -> CustomerService;
+  CustomerService -> CustomerRepository;
+  CustomerRepository -> CustomerRepositoryImpl [style=dashed, label="implemented by"];
+  SalesView -> SaleItem;
+  SalesView -> SaleReceipt;
+  SalesController -> SalesView;
+  SalesController -> SalesService;
+  SalesController -> CustomerController;
+  SalesService -> SalesRepository;
+  SalesRepository -> SalesRepositoryImpl [style=dashed, label="implemented by"];
+  SalesRepositoryImpl -> LotSaleValidator;
+  SalesRepositoryImpl -> InvoiceFileService;
+  SalesRepositoryImpl -> SaleAllocationPolicy;
+  SalesRepositoryImpl -> AvailableProduct;
+  SalesRepositoryImpl -> InvoiceLine;
+  SalesRepositoryImpl -> SaleReceipt;
+  SaleReceipt -> InvoiceLine;
+}

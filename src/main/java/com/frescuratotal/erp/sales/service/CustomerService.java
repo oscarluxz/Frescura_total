@@ -7,12 +7,14 @@ package com.frescuratotal.erp.sales.service;
 import com.frescuratotal.erp.sales.model.Customer;
 import com.frescuratotal.erp.sales.repository.CustomerRepository;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  *
  * @author PC
  */
 public class CustomerService {
+    private static final Logger LOGGER = Logger.getLogger(CustomerService.class.getName());
     private final CustomerRepository repository;
 
     public CustomerService(CustomerRepository repository) {
@@ -30,6 +32,7 @@ public class CustomerService {
             throw new IllegalArgumentException("Customer type is required");
         }
         repository.save(customer);
+        LOGGER.info("Customer registered.");
     }   
     
     public Customer findById(int id) {
@@ -41,6 +44,7 @@ public class CustomerService {
     }
     
     public List<Customer> findAll() {
+        LOGGER.info("Customer list requested.");
         return repository.findAll();
     }
     
@@ -57,11 +61,13 @@ public class CustomerService {
             throw new IllegalArgumentException("Customer type is required");
         }
         repository.update(customer);
+        LOGGER.info(() -> "Customer updated. ID=" + customer.getId());
     }   
     
     public void deleteCustomer(int id) {
         findById(id);
         repository.delete(id);
+        LOGGER.info(() -> "Customer deleted. ID=" + id);
     }
 }
     

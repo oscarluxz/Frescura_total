@@ -3,3 +3,5 @@ dist/
 nbproject/private/
 build/
 *.class
+logs/
+output/

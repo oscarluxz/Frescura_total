@@ -4,6 +4,7 @@
  */
 package com.frescuratotal.erp.sales.controller;
 
+import com.frescuratotal.erp.common.AppLogger;
 import com.frescuratotal.erp.sales.model.Customer;
 import com.frescuratotal.erp.sales.service.CustomerService;
 import com.frescuratotal.erp.sales.view.CustomerView;
@@ -23,6 +24,7 @@ public class CustomerController {
     }
     
     public void start() {       
+        AppLogger.configure();
         int option = -1;
 
         while (option != 0) {

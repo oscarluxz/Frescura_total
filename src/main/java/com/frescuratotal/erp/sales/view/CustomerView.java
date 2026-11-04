@@ -14,7 +14,15 @@ import java.util.Scanner;
  * @author PC
  */
 public class CustomerView {
-    private final Scanner scan = new Scanner(System.in);
+    private final Scanner scan;
+
+    public CustomerView() {
+        this(new Scanner(System.in));
+    }
+
+    public CustomerView(Scanner scan) {
+        this.scan = scan;
+    }
     
     public void showMenu(){
         System.out.println("=== CUSTOMER MENU ===\n");

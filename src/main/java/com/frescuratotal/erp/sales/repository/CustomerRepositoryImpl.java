@@ -13,12 +13,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author PC
  */
 public class CustomerRepositoryImpl implements CustomerRepository {
+    private static final Logger LOGGER = Logger.getLogger(CustomerRepositoryImpl.class.getName());
 
     @Override
     public void save(Customer customer) {
@@ -37,6 +40,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
             
         }  catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Customer insert failed.", e);
             throw new IllegalStateException("Could not save customer", e);
         }
     }
@@ -64,6 +68,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Customer lookup failed. ID=" + id, e);
             throw new IllegalStateException(
                     "Could not find customer with ID " + id, e
             );
@@ -96,6 +101,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Customer list query failed.", e);
             throw new IllegalStateException("Could not retrieve customers", e);
         }
         return customers;
@@ -115,12 +121,13 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.setString(2, customer.getDocument());
             ps.setString(3, customer.getEmail());
             ps.setString(4, customer.getPhone());
-            ps.setString(5, customer.getAddress());
+             ps.setString(5, customer.getAddress());
             ps.setInt(6, customer.getCustomerType().getDbId());
             ps.setInt(7, customer.getId());
             ps.executeUpdate();
            
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Customer update failed. ID=" + customer.getId(), e);
             throw new IllegalStateException(
                     "Could not update customer with ID " + customer.getId(), e
             );
@@ -138,6 +145,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
             
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Customer delete failed. ID=" + id, e);
             throw new IllegalStateException(
                     "Could not delete customer with ID " + id, e
             );
