@@ -5,3 +5,4 @@ build/
 *.class
 .env
 .env.local
+docs/tools/node_modules/

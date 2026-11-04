@@ -1,0 +1,7 @@
+{
+  "name": "frescura-er-diagram",
+  "private": true,
+  "type": "module",
+  "scripts": { "generate": "node generate-er.mjs" },
+  "dependencies": { "@viz-js/viz": "3.31.0", "@resvg/resvg-js": "2.6.2" }
+}

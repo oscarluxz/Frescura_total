@@ -1,6 +1,6 @@
 package frescuratotal.erp.inventory;
 
-import frescuratotal.erp.Main;
+import frescuratotal.erp.inventory.view.InventoryConsoleView;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ public class InventoryConsoleTest {
         try {
             System.setIn(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)));
             System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8));
-            Main.main(new String[0]);
+            new InventoryConsoleView().run();
             return output.toString(StandardCharsets.UTF_8);
         } finally {
             System.setIn(originalInput);
@@ -40,6 +40,6 @@ public class InventoryConsoleTest {
 
     @Test public void exitsAtEndOfInput() {
         assertTrue(runConsole("").contains("INVENTARIO FRESCURA TOTAL"));
-        assertTrue(runConsole("1\n").contains("El lote no fue registrado."));
+        assertTrue(runConsole("1\n").contains("La operación no se completó."));
     }
 }

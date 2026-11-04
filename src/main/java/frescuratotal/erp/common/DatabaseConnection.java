@@ -18,7 +18,7 @@ public final class DatabaseConnection {
     public Connection getConnection() throws SQLException {
         String password = System.getenv("ERP_DB_PASSWORD");
         if (password == null) {
-            throw new SQLException("Set ERP_DB_PASSWORD in your environment before connecting to MySQL.");
+            throw new SQLException("Configura la variable ERP_DB_PASSWORD antes de conectar con MySQL.");
         }
 
         String url = setting("ERP_DB_URL", null);

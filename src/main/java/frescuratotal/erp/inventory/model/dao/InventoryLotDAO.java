@@ -2,6 +2,7 @@ package frescuratotal.erp.inventory.model.dao;
 
 import frescuratotal.erp.common.DatabaseConnection;
 import frescuratotal.erp.inventory.model.Lot;
+import frescuratotal.erp.inventory.model.LotStatus;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
@@ -30,7 +31,7 @@ public class InventoryLotDAO {
         try (Connection connection = DatabaseConnection.getInstance().getConnection()) {
             connection.setAutoCommit(false);
             try {
-                int statusId = findAvailableStatusId(connection);
+                int statusId = findInitialStatusId(connection, expirationDate);
                 validateSupplierProduct(connection, supplierId, productId);
 
                 int lotId;
@@ -88,13 +89,13 @@ public class InventoryLotDAO {
         }
     }
 
-    private int findAvailableStatusId(Connection connection) throws SQLException {
+    private int findInitialStatusId(Connection connection, LocalDate expirationDate) throws SQLException {
         String sql = "SELECT id_estado FROM estados_lote WHERE nombre = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, "Disponible");
+            statement.setString(1, LotStatus.forDate(expirationDate, InventoryQualityDAO.today()).getDatabaseName());
             try (ResultSet result = statement.executeQuery()) {
                 if (!result.next()) {
-                    throw new SQLException("Falta el estado Disponible en estados_lote.");
+                    throw new SQLException("Falta el estado inicial del lote en estados_lote.");
                 }
                 return result.getInt("id_estado");
             }
