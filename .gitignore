@@ -3,3 +3,6 @@ dist/
 nbproject/private/
 build/
 *.class
+.env
+.env.local
+docs/tools/node_modules/
