@@ -13,7 +13,7 @@ public class WasteMySqlTest extends QualityMySqlSupport {
     @Test public void deductsOnlyOnceAndRejectsDuplicateInspection() throws Exception {
         int lot = addLot(dao.today().plusDays(30));
         dao.quarantine(lot, "Daño", "Junior");
-        int inspection = dao.inspect(lot, false, "Ana", "Daño", null);
+        int inspection = addHistoricalRejection(lot, "Daño");
         int first = dao.recordWaste(lot, inspection, new BigDecimal("3.25"), "Daño", "Junior", "op-1");
         assertEquals(first, dao.recordWaste(lot, inspection, new BigDecimal("3.25"), "Daño", "Junior", "op-1"));
         assertEquals(0, new BigDecimal("6.75").compareTo(remaining(lot)));
@@ -62,12 +62,12 @@ public class WasteMySqlTest extends QualityMySqlSupport {
     @Test public void rejectsInspectionFromResolvedOrDifferentQuarantine() throws Exception {
         int lot = addLot(dao.today().plusDays(30));
         dao.quarantine(lot, "Daño inicial", "Junior");
-        int old = dao.inspect(lot, false, "Ana", "Daño inicial", null);
+        int old = addHistoricalRejection(lot, "Daño inicial");
         dao.inspect(lot, true, "Ana", null, "Corregido");
         dao.quarantine(lot, "Nuevo daño", "Junior");
         try { dao.recordWaste(lot, old, BigDecimal.ONE, "Daño inicial", "Junior", "stale"); fail(); }
         catch (SQLException expected) { assertTrue(expected.getMessage().contains("vigente")); }
-        int current = dao.inspect(lot, false, "Ana", "Nuevo daño", null);
+        int current = addHistoricalRejection(lot, "Nuevo daño");
         assertTrue(dao.recordWaste(lot, current, BigDecimal.ONE, "Nuevo daño", "Junior", "current") > 0);
         assertEquals(1, count("registro_mermas"));
     }
