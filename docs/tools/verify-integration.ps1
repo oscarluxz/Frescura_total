@@ -11,11 +11,13 @@ $previousSchema = $env:ERP_TEST_SCHEMA_FILE
 try {
     $env:ERP_DB_URL = $TestServerUrl + $database + '?createDatabaseIfNotExist=true&serverTimezone=America/Bogota'
     $env:ERP_TEST_SCHEMA_FILE = Join-Path $repo 'docs/database.sql'
+    Write-Output ('Base de verificación: ' + $database)
     Push-Location -LiteralPath $repo
     try {
         & mvn -B test-compile
         if ($LASTEXITCODE -ne 0) { throw 'No se pudieron compilar las pruebas.' }
-        & mvn -B exec:java '-Dexec.mainClass=frescuratotal.erp.IntegratedWorkflowProbe' '-Dexec.classpathScope=test' "-Dexec.args=$($env:ERP_TEST_SCHEMA_FILE.Replace('\','/'))"
+        $schemaArgument = '-Dexec.args="' + $env:ERP_TEST_SCHEMA_FILE.Replace('\','/') + '"'
+        & mvn -B exec:java '-Dexec.mainClass=frescuratotal.erp.IntegratedWorkflowProbe' '-Dexec.classpathScope=test' $schemaArgument
         if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación del flujo integrado.' }
     } finally { Pop-Location }
 } finally {

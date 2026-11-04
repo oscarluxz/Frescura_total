@@ -1,4 +1,5 @@
--- Esquema de la actividad recuperado de ERP_FrescuraTotal_Junior.zip.
+-- DDL contrastado con el SQL oficial de la actividad (Google Drive 1pvak9x6hoFD2jkSmy7avQKkKqpOffgcm).
+-- Original SHA-256: d1261f039aa022a46757e2bb2eea1f01e745f366b32a9c5a91625499d0525f61.
 -- Instalación sin borrado: no elimina bases ni datos existentes.
 -- Para una instalación nueva; si ya hay tablas, use solo migraciones compatibles.
 -- *** Script Proyecto ERP Frescura Total **
