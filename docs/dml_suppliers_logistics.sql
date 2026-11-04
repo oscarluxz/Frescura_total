@@ -35,7 +35,7 @@ INSERT INTO proveedores (id_proveedor, nombre, nit, persona_contacto, email, tel
 (30, 'Ordeño Fresco Ltda.', '850136570-5', 'Alexánder Jiménez Beltrán', 'ventas@ordenofresco.com.co', '3049467262', 'Calle 22 #46-98, Tunja', TRUE),
 (31, 'Ganadera Los Robles S.A.S.', '829264463-7', 'Leonardo Pérez Medina', 'ventas@ganaderalosrobles.com.co', '3233255659', 'Carrera 67 #13-11, Ibagué', TRUE),
 (32, 'Arrocera Tolima S.A.', '899930136-5', 'Marcela Sánchez Ortiz', 'ventas@arroceratolima.com.co', '3005066314', 'Calle 102 #71-93, Bogotá', TRUE),
-(33, 'Café y Bebidas S.A.', '883819387-5', 'Alexánder Cárdenas Vega', 'ventas@cafeybebidas.com.co', '3122715228', 'Carrera 8 #20-21, Ibagué', TRUE),
+(33, 'Café y Bebidas S.A.', 'SYN-FT-900427-AG', 'Alexánder Cárdenas Vega', 'ventas@cafeybebidas.com.co', '3122715228', 'Carrera 8 #20-21, Ibagué', TRUE),
 (34, 'Conservas Sol S.A.S.', '822830333-0', 'Milena Sánchez Ospina', 'ventas@conservassol.com.co', '3185719865', 'Calle 117 #84-82, Bogotá', TRUE),
 (35, 'Hornos del Centro S.A.S.', '864355467-4', 'Marcela Gutiérrez Medina', 'ventas@hornosdelcentro.com.co', '3126579717', 'Calle 43 #81-18, Mosquera', TRUE),
 (36, 'Cosecha Dorada S.A.S.', '854391957-8', 'Ricardo Pardo Suárez', 'ventas@cosechadorada.com.co', '3044375364', 'Carrera 83 #95-46, Villavicencio', TRUE),
