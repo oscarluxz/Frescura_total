@@ -28,7 +28,7 @@ public final class AppLogger {
             configured = true;
         } catch (IOException e) {
             Logger.getLogger(AppLogger.class.getName())
-                    .log(Level.WARNING, "Could not enable file logging.", e);
+                    .log(Level.WARNING, "No se pudo activar el registro en archivo.", e);
         }
     }
 }

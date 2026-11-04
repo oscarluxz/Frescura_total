@@ -40,7 +40,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
             
         }  catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Customer insert failed.", e);
+            LOGGER.log(Level.SEVERE, "Falló el registro del cliente.", e);
             throw new IllegalStateException("No se pudo guardar el cliente", e);
         }
     }
@@ -68,7 +68,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Customer lookup failed. ID=" + id, e);
+            LOGGER.log(Level.SEVERE, "Falló la consulta del cliente. ID=" + id, e);
             throw new IllegalStateException(
                     "Could not find customer with ID " + id, e
             );
@@ -101,7 +101,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             }
             
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Customer list query failed.", e);
+            LOGGER.log(Level.SEVERE, "Falló la consulta de la lista de clientes.", e);
             throw new IllegalStateException("No se pudieron consultar los clientes", e);
         }
         return customers;
@@ -127,7 +127,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
            
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Customer update failed. ID=" + customer.getId(), e);
+            LOGGER.log(Level.SEVERE, "Falló la actualización del cliente. ID=" + customer.getId(), e);
             throw new IllegalStateException(
                     "Could not update customer with ID " + customer.getId(), e
             );
@@ -145,7 +145,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             ps.executeUpdate();
             
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Customer delete failed. ID=" + id, e);
+            LOGGER.log(Level.SEVERE, "Falló la eliminación del cliente. ID=" + id, e);
             throw new IllegalStateException(
                     "Could not delete customer with ID " + id, e
             );
