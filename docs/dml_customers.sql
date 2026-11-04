@@ -1,19 +1,53 @@
--- Requires the tipos_cliente catalog from database.sql.
--- Adds 50 deterministic demo customers without duplicating existing documents.
-INSERT INTO clientes (nombre, documento, email, telefono, direccion, id_tipo)
-WITH RECURSIVE sequence_numbers (n) AS (
-    SELECT 1
-    UNION ALL
-    SELECT n + 1 FROM sequence_numbers WHERE n < 50
-)
-SELECT CONCAT('Demo Customer ', LPAD(sequence_numbers.n, 2, '0')),
-       CONCAT('FT-DEMO-', LPAD(sequence_numbers.n, 4, '0')),
-       CONCAT('customer', LPAD(sequence_numbers.n, 2, '0'), '@example.test'),
-       CONCAT('300', LPAD(sequence_numbers.n, 7, '0')),
-       CONCAT('Demo address ', sequence_numbers.n),
-       IF(MOD(sequence_numbers.n, 2) = 0, 1, 2)
-FROM sequence_numbers
-WHERE NOT EXISTS (
-    SELECT 1 FROM clientes existing
-    WHERE existing.documento = CONCAT('FT-DEMO-', LPAD(sequence_numbers.n, 4, '0'))
-);
+-- Clientes de prueba: 25 empresas (Mayorista) y 25 personas (Minorista).
+-- Requiere el catalogo tipos_cliente de database.sql: 1 = Mayorista, 2 = Minorista.
+INSERT INTO clientes (nombre, documento, email, telefono, direccion, id_tipo) VALUES
+('Julián Ramírez Pardo', '574277948', 'julian.ramirez76@outlook.com', '3504536932', 'Avenida Calle 116 #83-29, Santa Fe, Bogotá', 2),
+('Tienda Plaza Mayor', '863843210-9', 'compras@tiendaplazamayor.com.co', '3115970784', 'Carrera 94 #55-50, Usaquén, Bogotá', 1),
+('Andrés Cortés Vargas', '561542159', 'andres.cortes80@gmail.com', '3116768399', 'Carrera 21 #94-40, Teusaquillo, Bogotá', 2),
+('Asadero Del Parque', '860785487-1', 'compras@asaderodelparque.com.co', '3217262217', 'Transversal 33 #39-62, Puente Aranda, Bogotá', 1),
+('Luisa Cortés Martínez', '672881578', 'luisa.cortes6@gmail.com', '3115494646', 'Calle 140 #74-7, Teusaquillo, Bogotá', 2),
+('Colegio Bella Vista', '856746745-6', 'compras@colegiobellavista.com.co', '3139860522', 'Calle 54 #25-82, Tunjuelito, Bogotá', 1),
+('Iván Herrera Torres', '151174374', 'ivan.herrera11@outlook.com', '3508506800', 'Transversal 148 #13-22, Barrios Unidos, Bogotá', 2),
+('Fruver Cerros Orientales', '808037816-4', 'compras@fruvercerrosorientales.com.co', '3127304165', 'Avenida Calle 65 #69-18, Barrios Unidos, Bogotá', 1),
+('Marcela Moreno Díaz', '716868580', 'marcela.moreno84@outlook.com', '3211953923', 'Carrera 90 #42-68, Kennedy, Bogotá', 2),
+('Tienda La Economía', '803555340-4', 'compras@tiendalaeconomia.com.co', '3505893219', 'Transversal 71 #4-81, Usaquén, Bogotá', 1),
+('Néstor Rodríguez Sánchez', '501029319', 'nestor.rodriguez27@hotmail.com', '3162856124', 'Transversal 107 #42-1, Salitre, Bogotá', 2),
+('Panadería Don Pedro', '817771938-4', 'compras@panaderiadonpedro.com.co', '3232898112', 'Carrera 25 #20-14, Usaquén, Bogotá', 1),
+('Andrés Díaz Sánchez', '650165007', 'andres.diaz9@gmail.com', '3148902362', 'Carrera 144 #90-86, Restrepo, Bogotá', 2),
+('Fruver Villa Rosa', '866017712-2', 'compras@fruvervillarosa.com.co', '3013799131', 'Carrera 139 #9-84, Tunjuelito, Bogotá', 1),
+('Néstor Pérez Herrera', '206014274', 'nestor.perez41@gmail.com', '3229635044', 'Calle 93 #11-83, Engativá, Bogotá', 2),
+('Supermercado Nueva Granada', '831471020-2', 'compras@supermercadonuevagranada.com.co', '3166985094', 'Transversal 98 #4-37, Engativá, Bogotá', 1),
+('Andrés Castro Ortiz', '359870312', 'andres.castro8@outlook.com', '3206286005', 'Transversal 65 #95-44, Teusaquillo, Bogotá', 2),
+('Cafetería El Gran Mercado', '807026996-0', 'compras@cafeteriaelgranmercado.com.co', '3235044664', 'Calle 36 #46-83, Fontibón, Bogotá', 1),
+('Diana Rodríguez Moreno', '930021404', 'diana.rodriguez21@hotmail.com', '3134282185', 'Transversal 72 #23-61, Kennedy, Bogotá', 2),
+('Hotel Central', '870689765-1', 'compras@hotelcentral.com.co', '3507559255', 'Transversal 27 #13-35, Tunjuelito, Bogotá', 1),
+('Iván Ramírez Pérez', '63469851', 'ivan.ramirez79@outlook.com', '3228513174', 'Carrera 20 #70-54, Suba, Bogotá', 2),
+('Casino San Martín', '832157218-1', 'compras@casinosanmartin.com.co', '3005917166', 'Avenida Calle 137 #81-5, Usaquén, Bogotá', 1),
+('Néstor Acosta Gutiérrez', '804844731', 'nestor.acosta20@hotmail.com', '3505834477', 'Calle 38 #77-79, Santa Fe, Bogotá', 2),
+('Clínica Mi Barrio', '808279085-5', 'compras@clinicamibarrio.com.co', '3205777258', 'Avenida Calle 29 #22-99, Usaquén, Bogotá', 1),
+('Carlos Rojas Cortés', '423142974', 'carlos.rojas16@hotmail.com', '3209142739', 'Calle 120 #1-24, Tunjuelito, Bogotá', 2),
+('Hotel San Jorge', '839162011-1', 'compras@hotelsanjorge.com.co', '3165026206', 'Calle 69 #42-33, Puente Aranda, Bogotá', 1),
+('Diana Pardo Vargas', '969118283', 'diana.pardo22@hotmail.com', '3229576915', 'Calle 140 #56-28, Salitre, Bogotá', 2),
+('Casino El Buen Sabor', '848774094-1', 'compras@casinoelbuensabor.com.co', '3219585529', 'Avenida Calle 44 #70-55, Teusaquillo, Bogotá', 1),
+('María Ortiz Beltrán', '440782322', 'maria.ortiz95@gmail.com', '3112174445', 'Transversal 144 #9-94, Santa Fe, Bogotá', 2),
+('Minimercado La Esperanza', '878805350-4', 'compras@minimercadolaesperanza.com.co', '3132902027', 'Avenida Calle 70 #73-38, Usaquén, Bogotá', 1),
+('Adriana Rodríguez Torres', '268251082', 'adriana.rodriguez78@hotmail.com', '3108845020', 'Transversal 61 #14-40, Salitre, Bogotá', 2),
+('Asadero La Palma', '859988598-9', 'compras@asaderolapalma.com.co', '3005574437', 'Calle 49 #60-97, Tunjuelito, Bogotá', 1),
+('Andrés Martínez Castro', '460054937', 'andres.martinez4@gmail.com', '3129028653', 'Carrera 9 #87-80, Kennedy, Bogotá', 2),
+('Colegio Las Delicias', '842243907-2', 'compras@colegiolasdelicias.com.co', '3142727816', 'Avenida Calle 23 #20-14, Salitre, Bogotá', 1),
+('Johana García Gutiérrez', '1077636380', 'johana.garcia12@gmail.com', '3518015441', 'Calle 58 #32-16, Kennedy, Bogotá', 2),
+('Cafetería El Dorado', '880318099-8', 'compras@cafeteriaeldorado.com.co', '3131054401', 'Transversal 78 #16-81, Suba, Bogotá', 1),
+('Jorge Pardo Cárdenas', '638943056', 'jorge.pardo77@gmail.com', '3005422553', 'Calle 123 #11-50, Teusaquillo, Bogotá', 2),
+('Clínica Santa Clara', '819523243-9', 'compras@clinicasantaclara.com.co', '3168786887', 'Calle 119 #94-53, Tunjuelito, Bogotá', 1),
+('Camilo Ortiz López', '1013213919', 'camilo.ortiz63@hotmail.com', '3112146867', 'Carrera 123 #88-89, Suba, Bogotá', 2),
+('Supermercado La Sabana', '885798514-1', 'compras@supermercadolasabana.com.co', '3145622241', 'Avenida Calle 103 #17-24, Chapinero, Bogotá', 1),
+('Hernán Jiménez Acosta', '430968422', 'hernan.jimenez33@outlook.com', '3126600881', 'Carrera 39 #47-34, Bosa, Bogotá', 2),
+('Colegio Los Andes', '862754688-1', 'compras@colegiolosandes.com.co', '3128225964', 'Carrera 54 #31-8, Cedritos, Bogotá', 1),
+('Natalia Vargas Cortés', '137752039', 'natalia.vargas6@hotmail.com', '3519928935', 'Calle 16 #14-7, Usaquén, Bogotá', 2),
+('Casino Casa Real', '816722647-3', 'compras@casinocasareal.com.co', '3222132088', 'Calle 76 #40-87, Engativá, Bogotá', 1),
+('Néstor Moreno Díaz', '389741611', 'nestor.moreno73@gmail.com', '3123740013', 'Carrera 143 #49-53, Barrios Unidos, Bogotá', 2),
+('Fruver El Trébol', '842850990-8', 'compras@fruvereltrebol.com.co', '3511518886', 'Carrera 13 #4-72, Puente Aranda, Bogotá', 1),
+('Natalia Mendoza Acosta', '993199688', 'natalia.mendoza96@gmail.com', '3122979648', 'Calle 148 #25-54, Bosa, Bogotá', 2),
+('Supermercado El Fogón Llanero', '820936526-4', 'compras@supermercadoelfogonllane.com.co', '3221455075', 'Transversal 79 #69-30, Engativá, Bogotá', 1),
+('Luisa López Vargas', '93580023', 'luisa.lopez9@gmail.com', '3224222026', 'Transversal 150 #27-65, Suba, Bogotá', 2),
+('Clínica El Corral', '826709534-2', 'compras@clinicaelcorral.com.co', '3215364887', 'Transversal 100 #6-79, Puente Aranda, Bogotá', 1);
