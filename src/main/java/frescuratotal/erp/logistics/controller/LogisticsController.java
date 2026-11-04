@@ -38,6 +38,10 @@ public class LogisticsController {
     }
 
     // ----- vehicles -----
+    public void prepareSale(int saleId) throws SQLException {
+        if (saleId <= 0) { throw new IllegalArgumentException("El ID de venta debe ser positivo."); }
+        dispatchRepository.prepare(saleId);
+    }
 
     public int registerVehicle(Vehicle vehicle) throws SQLException {
         String plate = "";

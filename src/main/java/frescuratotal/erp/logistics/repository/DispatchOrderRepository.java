@@ -7,6 +7,7 @@ import java.util.List;
 
 /** Read model for the dispatch panel. */
 public interface DispatchOrderRepository {
+    void prepare(int saleId) throws SQLException;
     /**
      * All sales in IN_PREPARATION. Each order carries its active route (id and name)
      * when it already has one, so the panel can show whether it is assigned.

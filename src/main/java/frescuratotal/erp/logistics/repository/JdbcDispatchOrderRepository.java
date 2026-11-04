@@ -12,6 +12,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcDispatchOrderRepository implements DispatchOrderRepository {
+    @Override public void prepare(int saleId) throws SQLException {
+        String sql = "UPDATE ventas v JOIN estados_venta current_state ON current_state.id_estado=v.id_estado "
+                + "JOIN estados_venta next_state ON next_state.nombre='En Preparacion' "
+                + "SET v.id_estado=next_state.id_estado WHERE v.id_venta=? AND current_state.nombre='Registrada'";
+        try (Connection connection = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, saleId);
+            if (statement.executeUpdate() != 1) {
+                throw new SQLException("La venta no existe o no está Registrada; no se cambió su estado.");
+            }
+        }
+    }
 
     @Override
     public List<DispatchOrder> findInPreparation() throws SQLException {
