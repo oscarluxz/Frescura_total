@@ -100,4 +100,8 @@ El modelo guarda los datos y sus reglas propias, la vista solo lee e imprime por
 
 El detalle de cada decisión está en `docs/patrones_proveedores.md` y `docs/patrones_logistica.md`.
 
-[Pendiente: cada compañero agrega aquí un párrafo con los patrones de su módulo.]
+**Adaptador y fábrica (ventas e inventario).** Ventas no conoce las clases de inventario: depende de la interfaz `LotSaleValidator`. La clase `InventoryLotSaleValidator` adapta esa interfaz a `InventoryQualityDAO`, y `SalesModuleFactory` ensambla el módulo. Se eligió así para que cada módulo cambie sin romper al otro (inversión de dependencias) y para que la regla de calidad del inventario exista en un solo lugar.
+
+**Política de asignación FEFO (ventas).** `SaleAllocationPolicy` concentra la regla de qué lote se vende primero y cuándo aplica el descuento, separada del SQL y de la consola, lo que permite probarla con pruebas automáticas. Cada venta se guarda en una sola transacción con `commit` y `rollback`.
+
+El detalle del módulo de ventas está en `docs/README_ventas.md`.
