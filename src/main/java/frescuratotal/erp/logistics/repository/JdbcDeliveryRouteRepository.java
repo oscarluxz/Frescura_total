@@ -35,6 +35,7 @@ public class JdbcDeliveryRouteRepository implements DeliveryRouteRepository {
         try (Connection c = DatabaseConnection.getInstance().getConnection()) {
             c.setAutoCommit(false);
             try {
+                lockAndValidateAssignment(c, route, saleIds);
                 int routeId = insertRoute(c, route);
                 insertAssignment(c, routeId, route);
                 insertStops(c, routeId, saleIds);
@@ -147,6 +148,57 @@ public class JdbcDeliveryRouteRepository implements DeliveryRouteRepository {
 
     // ---------- helpers (they receive the open transaction's connection) ----------
 
+    private void lockAndValidateAssignment(Connection connection, DeliveryRoute route, List<Integer> saleIds) throws SQLException {
+        if (route.getVehicle() == null || route.getDriver() == null || saleIds == null || saleIds.isEmpty()
+                || new java.util.HashSet<>(saleIds).size() != saleIds.size()) {
+            throw new IllegalArgumentException("La ruta requiere vehículo, conductor y pedidos únicos.");
+        }
+        try (PreparedStatement statement = connection.prepareStatement("SELECT estado FROM vehiculos WHERE id_vehiculo=? FOR UPDATE")) {
+            statement.setInt(1, route.getVehicle().getId());
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next() || !"Activo".equals(result.getString(1))) {
+                    throw new IllegalStateException("El vehículo no está disponible.");
+                }
+            }
+        }
+        try (PreparedStatement statement = connection.prepareStatement("SELECT activo FROM conductores WHERE id_conductor=? FOR UPDATE")) {
+            statement.setInt(1, route.getDriver().getId());
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next() || !result.getBoolean(1)) { throw new IllegalStateException("El conductor no está disponible."); }
+            }
+        }
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT r.id_ruta FROM asignaciones_entrega a JOIN rutas_entrega r ON r.id_ruta=a.id_ruta "
+                + "WHERE (a.id_vehiculo=? OR a.id_conductor=?) AND r.estado IN ('Planificada','En Transito') LIMIT 1 FOR UPDATE")) {
+            statement.setInt(1, route.getVehicle().getId());
+            statement.setInt(2, route.getDriver().getId());
+            try (ResultSet result = statement.executeQuery()) {
+                if (result.next()) { throw new IllegalStateException("El vehículo o conductor ya está asignado a una ruta activa."); }
+            }
+        }
+        List<Integer> sortedIds = new ArrayList<>(saleIds);
+        java.util.Collections.sort(sortedIds);
+        for (int saleId : sortedIds) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT e.nombre FROM ventas v JOIN estados_venta e ON e.id_estado=v.id_estado WHERE v.id_venta=? FOR UPDATE")) {
+                statement.setInt(1, saleId);
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next() || !"En Preparacion".equals(result.getString(1))) {
+                        throw new IllegalStateException("El pedido no está En preparación.");
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT r.id_ruta FROM ventas_ruta vr JOIN rutas_entrega r ON r.id_ruta=vr.id_ruta "
+                    + "WHERE vr.id_venta=? AND r.estado<>'Cancelada' LIMIT 1 FOR UPDATE")) {
+                statement.setInt(1, saleId);
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) { throw new IllegalStateException("El pedido ya está asignado a una ruta."); }
+                }
+            }
+        }
+    }
+
     private int insertRoute(Connection c, DeliveryRoute route) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
                 "INSERT INTO rutas_entrega (nombre_ruta, usuario_creacion, hora_salida_estimada, "
@@ -194,7 +246,7 @@ public class JdbcDeliveryRouteRepository implements DeliveryRouteRepository {
     private void checkRouteInTransit(Connection c, int routeId, int saleId) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
                 "SELECT r.estado FROM rutas_entrega r JOIN ventas_ruta vr ON vr.id_ruta = r.id_ruta "
-                + "WHERE r.id_ruta = ? AND vr.id_venta = ?")) {
+                + "WHERE r.id_ruta = ? AND vr.id_venta = ? FOR UPDATE")) {
             ps.setInt(1, routeId);
             ps.setInt(2, saleId);
             try (ResultSet rs = ps.executeQuery()) {

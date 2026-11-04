@@ -28,6 +28,7 @@ public class IntegratedWorkflowProbe {
     interface Probe { void run() throws Exception; }
     static int passed, failed, supplierId, vehicleId, driverId, routeId;
     static SaleReceipt receipt;
+    static int firstPreparedSale, secondPreparedSale, secondVehicle, secondDriver;
     static SalesService sales = new SalesService(new SalesRepositoryImpl(new InventoryLotSaleValidator(), new InvoiceFileService()));
     static SupplierController suppliers = new SupplierController(new JdbcSupplierRepository(),new JdbcPurchaseHistoryRepository());
     static LogisticsController logistics = new LogisticsController(new JdbcVehicleRepository(),new JdbcDriverRepository(),new JdbcDispatchOrderRepository(),new JdbcDeliveryRouteRepository());
@@ -173,12 +174,72 @@ public class IntegratedWorkflowProbe {
             require(logistics.getRoute(routeId).getStatus()==RouteStatus.COMPLETED,"Route not completed");
             require(new TraceabilityDAO().traceLot(900001).getCustomers().stream().anyMatch(c->c.getId()==900001),"Delivered customer missing from traceability");
         });
+        check("Concurrent routes cannot reserve the same vehicle or driver", () -> {
+            firstPreparedSale = sales.confirmSale(900001,List.of(new SaleItem(900001,BigDecimal.ONE)),"Auditoría").saleId();
+            secondPreparedSale = sales.confirmSale(900002,List.of(new SaleItem(900001,BigDecimal.ONE)),"Auditoría").saleId();
+            logistics.prepareSale(firstPreparedSale);
+            logistics.prepareSale(secondPreparedSale);
+            int before = number("SELECT COUNT(*) FROM rutas_entrega");
+            int winner = raceRoutes(candidate("Concurrent resource A",vehicleId,driverId),firstPreparedSale,
+                    candidate("Concurrent resource B",vehicleId,driverId),secondPreparedSale);
+            require(number("SELECT COUNT(*) FROM rutas_entrega")==before+1,"Rejected route left an orphan header");
+            logistics.cancelRoute(winner);
+        });
+        check("Concurrent routes cannot reserve the same prepared sale", () -> {
+            secondVehicle=logistics.registerVehicle(new Vehicle("AUD742","Vehículo auditoría 2",1000));
+            secondDriver=logistics.registerDriver(new frescuratotal.erp.logistics.model.Driver("Conductor auditoría 2","AUDIT-DRIVER-2","3000000001","driver2@example.invalid"));
+            int winner = raceRoutes(candidate("Concurrent order A",vehicleId,driverId),firstPreparedSale,
+                    candidate("Concurrent order B",secondVehicle,secondDriver),firstPreparedSale);
+            require(number("SELECT COUNT(*) FROM ventas_ruta vr JOIN rutas_entrega r ON r.id_ruta=vr.id_ruta WHERE r.estado<>'Cancelada' AND vr.id_venta="+firstPreparedSale)==1,"Sale reserved twice");
+            logistics.cancelRoute(winner);
+        });
+        check("Concurrent deliveries complete their route and release resources", () -> {
+            int route=logistics.createRoute("Concurrent deliveries",vehicleId,driverId,List.of(firstPreparedSale,secondPreparedSale),"Auditoría",null,null);
+            logistics.startRoute(route);
+            ExecutorService pool=Executors.newFixedThreadPool(2);
+            CountDownLatch start=new CountDownLatch(1);
+            try {
+                Future<?> first=pool.submit(() -> { start.await(); logistics.confirmDelivery(route,firstPreparedSale,"Ana",null); return null; });
+                Future<?> second=pool.submit(() -> { start.await(); logistics.confirmDelivery(route,secondPreparedSale,"Luis",null); return null; });
+                start.countDown();
+                first.get(25,TimeUnit.SECONDS); second.get(25,TimeUnit.SECONDS);
+            } finally { pool.shutdownNow(); }
+            require(logistics.getRoute(route).getStatus()==RouteStatus.COMPLETED,"Concurrent delivery left the route in transit");
+            require(logistics.listAvailableVehicles().stream().anyMatch(value -> value.getId()==vehicleId),"Vehicle not released");
+            require(logistics.listAvailableDrivers().stream().anyMatch(value -> value.getId()==driverId),"Driver not released");
+        });
         System.out.println("AUDIT_SUMMARY passed="+passed+" failed="+failed);
         if (failed > 0) { throw new AssertionError("Integrated workflow failures: " + failed); }
     }
     static boolean concurrentSale(CountDownLatch gate,int customer) throws Exception {
         gate.await(); try {sales.confirmSale(customer,List.of(new SaleItem(900001,new BigDecimal("15"))),"Auditoría");return true;}
         catch(IllegalArgumentException expected){return false;}
+    }
+    static DeliveryRoute candidate(String name,int vehicleId,int driverId) {
+        Vehicle vehicle=new Vehicle(); vehicle.setId(vehicleId);
+        frescuratotal.erp.logistics.model.Driver driver=new frescuratotal.erp.logistics.model.Driver(); driver.setId(driverId);
+        DeliveryRoute route=new DeliveryRoute(); route.setName(name); route.setCreatedBy("Auditoría"); route.setVehicle(vehicle); route.setDriver(driver);
+        return route;
+    }
+    static int raceRoutes(DeliveryRoute first,int firstSale,DeliveryRoute second,int secondSale) throws Exception {
+        ExecutorService pool=Executors.newFixedThreadPool(2);
+        CountDownLatch start=new CountDownLatch(1);
+        try {
+            Future<Integer> a=pool.submit(() -> createAfterSignal(start,first,firstSale));
+            Future<Integer> b=pool.submit(() -> createAfterSignal(start,second,secondSale));
+            start.countDown();
+            int firstResult=a.get(25,TimeUnit.SECONDS),secondResult=b.get(25,TimeUnit.SECONDS);
+            require((firstResult>0)!=(secondResult>0),"Exactly one competing route must succeed");
+            return Math.max(firstResult,secondResult);
+        } finally { pool.shutdownNow(); }
+    }
+    static int createAfterSignal(CountDownLatch start,DeliveryRoute route,int sale) throws Exception {
+        start.await();
+        try { return new JdbcDeliveryRouteRepository().create(route,List.of(sale)); }
+        catch (IllegalStateException expected) {
+            require(expected.getMessage().contains("asignado"),"Unexpected route rejection: "+expected.getMessage());
+            return -1;
+        }
     }
     static Connection open()throws SQLException{return DatabaseConnection.getInstance().getConnection();}
     static void sql(String sql)throws SQLException{try(Connection c=open();Statement s=c.createStatement()){s.executeUpdate(sql);}}

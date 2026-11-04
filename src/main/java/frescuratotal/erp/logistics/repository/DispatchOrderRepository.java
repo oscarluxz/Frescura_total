@@ -5,7 +5,7 @@ import frescuratotal.erp.logistics.model.DispatchOrder;
 import java.sql.SQLException;
 import java.util.List;
 
-/** Read model for the dispatch panel. */
+/** Order preparation and read model for the dispatch panel. */
 public interface DispatchOrderRepository {
     void prepare(int saleId) throws SQLException;
     /**
