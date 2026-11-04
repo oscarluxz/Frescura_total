@@ -24,6 +24,11 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
+        try { run(); }
+        finally { frescuratotal.erp.common.DatabaseConnection.getInstance().shutdown(); }
+    }
+
+    private static void run() {
         Scanner scanner = new Scanner(System.in);
         frescuratotal.erp.common.UserSession session = new frescuratotal.erp.common.UserSession();
         frescuratotal.erp.inventory.controller.QualityController qualityController = new frescuratotal.erp.inventory.controller.QualityController(

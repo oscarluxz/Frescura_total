@@ -26,7 +26,7 @@ public class InventoryConsoleView {
         this.traceController = traceController;
     }
 
-    public static void main(String[] args) { new InventoryConsoleView().run(); }
+    public static void main(String[] args) { frescuratotal.erp.Main.main(args); }
     public void run() { run(new Scanner(System.in)); }
 
     public void run(Scanner scanner) {

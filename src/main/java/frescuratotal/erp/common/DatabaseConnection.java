@@ -15,6 +15,11 @@ public final class DatabaseConnection {
         return INSTANCE;
     }
 
+    /** Stop the driver's cleanup worker when the console application exits. */
+    public void shutdown() {
+        com.mysql.cj.jdbc.AbandonedConnectionCleanupThread.checkedShutdown();
+    }
+
     public Connection getConnection() throws SQLException {
         String password = System.getenv("ERP_DB_PASSWORD");
         if (password == null) {
