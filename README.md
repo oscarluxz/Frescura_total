@@ -119,8 +119,8 @@ no se automatizó la interfaz de NetBeans.
 
 ## Pruebas reproducibles
 
-`mvn clean verify` sin `ERP_TEST_SCHEMA_FILE` ejecuta 12 pruebas sin MySQL y omite
-las 16 de integración. Ese resultado por sí solo no acredita la persistencia.
+`mvn clean verify` sin `ERP_TEST_SCHEMA_FILE` ejecuta 13 pruebas sin MySQL y omite
+las 17 de integración. Ese resultado por sí solo no acredita la persistencia.
 
 Para la prueba completa, preparar una instancia MySQL **de prueba**, nunca una
 base comercial. La cuenta necesita permisos para crear bases de prueba. Configurar
@@ -130,6 +130,8 @@ base comercial. La cuenta necesita permisos para crear bases de prueba. Configur
 
 ```powershell
 $env:ERP_TEST_SCHEMA_FILE = (Resolve-Path docs/database.sql).Path
+# Para probar también la carga del DML, indicar el archivo real recibido de Oscar:
+$env:ERP_TEST_SUPPLIERS_FILE = 'C:\ruta\dml_suppliers_logistics.sql'
 mvn clean verify
 ```
 
@@ -140,12 +142,19 @@ ejecutan las instrucciones CREATE DATABASE/USE del archivo SQL sobre otra base.
 En PowerShell antiguo, una variable con cadena vacía puede eliminarse: usar
 PowerShell 7 o una contraseña no vacía para el usuario de pruebas.
 
-Resultado completo comprobado: **28 pruebas, cero fallos, cero errores y cero
+Resultado completo comprobado: **30 pruebas, cero fallos, cero errores y cero
 omitidas**, con JDK 17.0.21+9, Maven 3.9.16, MySQL Community 26.7.0-er y
 Connector/J 8.4.0. Incluye fechas límite, bloqueos de venta, transacciones y
 rollback, cuarentenas, inspecciones, referencias antiguas, reintentos concurrentes,
 mermas simultáneas, trazabilidad, DDL y un recorrido completo del menú. No se
 ejecutó contra la base comercial del usuario ni contra un servidor MySQL 8.x.
+
+Los datos de integración se entregan en `docs/dml_inventory.sql`: solo INSERT,
+IDs explícitos y dependencias compatibles con los proveedores del archivo de
+Oscar. Consultar `docs/dml_inventory.md` para el orden de carga, los rangos de IDs,
+los conteos y los ejemplos de lotes que puede referenciar el DML de ventas.
+La prueba adicional de carga requiere `ERP_TEST_SUPPLIERS_FILE`; si no se define,
+se omite esa prueba aunque se hayan habilitado las demás pruebas MySQL.
 
 ## Integración pendiente del equipo
 
