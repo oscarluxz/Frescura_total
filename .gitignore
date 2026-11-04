@@ -3,6 +3,8 @@ dist/
 nbproject/private/
 build/
 *.class
+logs/
+output/
 .env
 .env.local
 docs/tools/node_modules/
