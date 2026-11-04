@@ -17,7 +17,7 @@ public final class SaleAllocationPolicy {
 
     public static List<Allocation> allocate(BigDecimal requested, List<Lot> lots, LocalDate today) {
         if (requested == null || requested.signum() <= 0 || lots == null || today == null) {
-            throw new IllegalArgumentException("Requested quantity, lots, and date are required.");
+            throw new IllegalArgumentException("La cantidad solicitada, los lotes y la fecha son obligatorios.");
         }
         List<Lot> ordered = lots.stream()
                 .filter(lot -> lot != null && lot.sellable() && lot.quantity() != null
@@ -44,7 +44,7 @@ public final class SaleAllocationPolicy {
             remaining = remaining.subtract(quantity);
         }
         if (remaining.signum() > 0) {
-            throw new IllegalArgumentException("Insufficient sellable stock. Missing quantity: " + remaining);
+            throw new IllegalArgumentException("Existencias vendibles insuficientes. Cantidad faltante: " + remaining);
         }
         return List.copyOf(allocations);
     }

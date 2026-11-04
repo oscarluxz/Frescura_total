@@ -26,10 +26,10 @@ public class SalesController {
             salesView.showMenu();
             option = salesView.readOption();
             switch (option) {
-                case 0 -> salesView.showMessage("Returning to the main menu.");
+                case 0 -> salesView.showMessage("Volviendo al menú principal.");
                 case 1 -> confirmSale();
                 case 2 -> customerController.start();
-                default -> salesView.showMessage("Invalid menu option.");
+                default -> salesView.showMessage("Opción de menú inválida.");
             }
         } while (option != 0);
     }
@@ -41,13 +41,13 @@ public class SalesController {
             List<SaleItem> items = salesView.readSaleItems();
             String cashier = salesView.readCashier();
             if (!salesView.confirmRegistration()) {
-                salesView.showMessage("Sale cancelled; no stock or sale records were changed.");
+                salesView.showMessage("Venta cancelada; no se modificó el inventario ni los registros de venta.");
                 return;
             }
             SaleReceipt receipt = salesService.confirmSale(customerId, items, cashier);
             salesView.showReceipt(receipt);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            salesView.showMessage("Sale could not be confirmed: " + e.getMessage());
+            salesView.showMessage("No se pudo confirmar la venta: " + e.getMessage());
         }
     }
 }

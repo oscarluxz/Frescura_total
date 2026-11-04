@@ -28,6 +28,6 @@ public enum CustomerType {
                 return type;
             }  
         }
-        throw new IllegalArgumentException("Unknown customer type id: " + dbId);
+        throw new IllegalArgumentException("Tipo de cliente desconocido: " + dbId);
     }
 }
