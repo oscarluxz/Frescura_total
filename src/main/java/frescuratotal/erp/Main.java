@@ -55,7 +55,7 @@ public class Main {
             System.out.println("2. Proveedores");
             System.out.println("3. Logística");
             System.out.println("4. Ventas y facturación");
-            System.out.println("5. Cambiar rol de demostración (actual: " + session.getRole() + ")");
+            System.out.println("5. Cambiar rol de demostración (actual: " + session.getRole().getLabel() + ")");
             System.out.println("0. Salir");
             System.out.print("Opción: ");
             if (!scanner.hasNextLine()) { break; }
