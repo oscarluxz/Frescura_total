@@ -5,6 +5,9 @@ import frescuratotal.erp.sales.model.AvailableProduct;
 import frescuratotal.erp.sales.model.InvoiceLine;
 import frescuratotal.erp.sales.model.SaleItem;
 import frescuratotal.erp.sales.model.SaleReceipt;
+import frescuratotal.erp.sales.model.CompanyInfo;
+import java.time.LocalDateTime;
+import java.sql.Timestamp;
 import frescuratotal.erp.sales.service.InvoiceFileService;
 import frescuratotal.erp.sales.service.SaleAllocationPolicy;
 import java.math.BigDecimal;
@@ -74,12 +77,19 @@ public class SalesRepositoryImpl implements SalesRepository {
             connection.setAutoCommit(false);
             try {
                 CustomerRow customer = requireCustomer(connection, customerId);
+                CompanyInfo company = requireCompany(connection);
+                LocalDateTime issuedAt = LocalDateTime.now(BUSINESS_ZONE).withNano(0);
+                String customerAddress;
+                try (PreparedStatement statement = connection.prepareStatement("SELECT direccion FROM clientes WHERE id_cliente=?")) {
+                    statement.setInt(1, customerId);
+                    try (ResultSet result = statement.executeQuery()) { result.next(); customerAddress = result.getString(1); }
+                }
                 List<Allocation> allocations = allocateByFefo(connection, items);
                 Totals totals = calculateTotals(allocations);
                 String saleNumber = "SALE-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
                 int registeredStatusId = findRegisteredStatusId(connection);
                 int saleId = insertSale(connection, saleNumber, customerId, cashier,
-                        registeredStatusId, totals);
+                        registeredStatusId, totals, issuedAt);
 
                 for (Allocation allocation : allocations) {
                     lotSaleValidator.assertSellable(connection, allocation.lotId(), allocation.quantity());
@@ -88,8 +98,8 @@ public class SalesRepositoryImpl implements SalesRepository {
                 }
 
                 String invoiceNumber = "FT-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
-                String cufe = createCufe(saleId, saleNumber, invoiceNumber, customerId, totals);
-                insertInvoice(connection, saleId, invoiceNumber, cufe, totals);
+                String cufe = createCufe(invoiceNumber, issuedAt, company.getNit(), totals);
+                insertInvoice(connection, saleId, invoiceNumber, cufe, totals, issuedAt);
                 List<InvoiceLine> invoiceLines = allocations.stream()
                         .map(line -> new InvoiceLine(line.productName(), line.lotId(), line.quantity(),
                                 line.unitPrice(), line.discountRate(), line.discount(), line.taxRate(),
@@ -97,7 +107,7 @@ public class SalesRepositoryImpl implements SalesRepository {
                         .toList();
                 SaleReceipt receipt = new SaleReceipt(saleId, saleNumber, invoiceNumber, cufe,
                         customer.name(), customer.document(), invoiceLines,
-                        totals.subtotal(), totals.discount(), totals.tax(), totals.total(), null, null);
+                        totals.subtotal(), totals.discount(), totals.tax(), totals.total(), null, null, company, issuedAt, customerAddress);
                 completeReceipt = invoiceFileService.createFiles(receipt);
                 connection.commit();
             } catch (SQLException | RuntimeException e) {
@@ -180,6 +190,15 @@ public class SalesRepositoryImpl implements SalesRepository {
         }
     }
 
+    private CompanyInfo requireCompany(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM informacion_empresa ORDER BY id_empresa LIMIT 1");
+             ResultSet result = statement.executeQuery()) {
+            if (!result.next()) { throw new SQLException("Falta la información de la empresa para facturar."); }
+            return new CompanyInfo(result.getString("nombre_empresa"), result.getString("nit"),
+                    result.getString("direccion") + ", " + result.getString("ciudad"), result.getString("telefono"), result.getString("email"));
+        }
+    }
+
     private int findRegisteredStatusId(Connection connection) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
                 "SELECT id_estado FROM estados_venta WHERE nombre = 'Registrada'");
@@ -192,9 +211,9 @@ public class SalesRepositoryImpl implements SalesRepository {
     }
 
     private int insertSale(Connection connection, String saleNumber, int customerId, String cashier,
-                           int statusId, Totals totals) throws SQLException {
+                           int statusId, Totals totals, LocalDateTime issuedAt) throws SQLException {
         String sql = "INSERT INTO ventas (numero_venta, id_cliente, subtotal, total_descuento, "
-                + "total_impuesto, monto_total, id_estado, usuario_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "total_impuesto, monto_total, id_estado, usuario_registro, fecha_venta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setString(1, saleNumber);
             statement.setInt(2, customerId);
@@ -204,6 +223,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setBigDecimal(6, totals.total());
             statement.setInt(7, statusId);
             statement.setString(8, cashier);
+            statement.setTimestamp(9, Timestamp.valueOf(issuedAt));
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("No se insertó el encabezado de la venta.");
             }
@@ -249,10 +269,10 @@ public class SalesRepositoryImpl implements SalesRepository {
     }
 
     private void insertInvoice(Connection connection, int saleId, String invoiceNumber,
-                               String cufe, Totals totals) throws SQLException {
+                               String cufe, Totals totals, LocalDateTime issuedAt) throws SQLException {
         String qrContent = "https://frescuratotal.local/verify?cufe=" + cufe;
         String sql = "INSERT INTO facturas (id_venta, numero_factura, cufe, enlace_qr, subtotal, "
-                + "total_descuento, monto_impuesto, monto_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "total_descuento, monto_impuesto, monto_total, fecha_emision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, saleId);
             statement.setString(2, invoiceNumber);
@@ -262,6 +282,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setBigDecimal(6, totals.discount());
             statement.setBigDecimal(7, totals.tax());
             statement.setBigDecimal(8, totals.total());
+            statement.setTimestamp(9, Timestamp.valueOf(issuedAt));
             statement.executeUpdate();
         }
     }
@@ -281,11 +302,8 @@ public class SalesRepositoryImpl implements SalesRepository {
         return new Totals(subtotal, discount, tax, money(subtotal.subtract(discount).add(tax)));
     }
 
-    private String createCufe(int saleId, String saleNumber, String invoiceNumber,
-                              int customerId, Totals totals) {
-        String payload = String.join("|", Integer.toString(saleId), saleNumber, invoiceNumber,
-                Integer.toString(customerId), totals.subtotal().toPlainString(),
-                totals.discount().toPlainString(), totals.tax().toPlainString(), totals.total().toPlainString());
+    private String createCufe(String invoiceNumber, LocalDateTime issuedAt, String companyNit, Totals totals) {
+        String payload = String.join("|", invoiceNumber, issuedAt.toString(), totals.total().toPlainString(), companyNit);
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(payload.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);

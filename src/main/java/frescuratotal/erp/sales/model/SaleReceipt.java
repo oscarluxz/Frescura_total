@@ -18,8 +18,11 @@ public final class SaleReceipt {
     private final BigDecimal total;
     private final Path pdfPath;
     private final Path qrPath;
+    private final CompanyInfo company;
+    private final java.time.LocalDateTime issuedAt;
+    private final String customerAddress;
 
-    public SaleReceipt(int saleId, String saleNumber, String invoiceNumber, String cufe, String customerName, String customerDocument, List<InvoiceLine> lines, BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total, Path pdfPath, Path qrPath) {
+    public SaleReceipt(int saleId, String saleNumber, String invoiceNumber, String cufe, String customerName, String customerDocument, List<InvoiceLine> lines, BigDecimal subtotal, BigDecimal discount, BigDecimal tax, BigDecimal total, Path pdfPath, Path qrPath, CompanyInfo company, java.time.LocalDateTime issuedAt, String customerAddress) {
         this.saleId = saleId;
         this.saleNumber = saleNumber;
         this.invoiceNumber = invoiceNumber;
@@ -33,6 +36,9 @@ public final class SaleReceipt {
         this.total = total;
         this.pdfPath = pdfPath;
         this.qrPath = qrPath;
+        this.company = java.util.Objects.requireNonNull(company);
+        this.issuedAt = java.util.Objects.requireNonNull(issuedAt);
+        this.customerAddress = customerAddress;
     }
 
     public int saleId() { return saleId; }
@@ -61,6 +67,9 @@ public final class SaleReceipt {
     public Path getPdfPath() { return pdfPath; }
     public Path qrPath() { return qrPath; }
     public Path getQrPath() { return qrPath; }
+    public CompanyInfo getCompany() { return company; }
+    public java.time.LocalDateTime getIssuedAt() { return issuedAt; }
+    public String getCustomerAddress() { return customerAddress; }
 
     @Override public boolean equals(Object other) {
         if (this == other) { return true; }
@@ -78,7 +87,10 @@ public final class SaleReceipt {
                 && java.util.Objects.equals(tax, value.tax)
                 && java.util.Objects.equals(total, value.total)
                 && java.util.Objects.equals(pdfPath, value.pdfPath)
-                && java.util.Objects.equals(qrPath, value.qrPath);
+                && java.util.Objects.equals(qrPath, value.qrPath)
+                && java.util.Objects.equals(company, value.company)
+                && java.util.Objects.equals(issuedAt, value.issuedAt)
+                && java.util.Objects.equals(customerAddress, value.customerAddress);
     }
-    @Override public int hashCode() { return java.util.Objects.hash(saleId, saleNumber, invoiceNumber, cufe, customerName, customerDocument, lines, subtotal, discount, tax, total, pdfPath, qrPath); }
+    @Override public int hashCode() { return java.util.Objects.hash(saleId, saleNumber, invoiceNumber, cufe, customerName, customerDocument, lines, subtotal, discount, tax, total, pdfPath, qrPath, company, issuedAt, customerAddress); }
 }

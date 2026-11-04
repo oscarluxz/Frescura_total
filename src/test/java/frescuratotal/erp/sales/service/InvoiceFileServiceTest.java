@@ -37,6 +37,15 @@ public class InvoiceFileServiceTest {
             String decoded = new MultiFormatReader().decode(new BinaryBitmap(
                     new HybridBinarizer(new BufferedImageLuminanceSource(image)))).getText();
             assertEquals("https://frescuratotal.local/verify?cufe=" + cufe, decoded);
+            try (com.lowagie.text.pdf.PdfReader reader = new com.lowagie.text.pdf.PdfReader(Files.readAllBytes(generated.pdfPath()))) {
+                String text = new com.lowagie.text.pdf.parser.PdfTextExtractor(reader).getTextFromPage(1);
+                assertTrue(text, text.contains("NIT: 900123456-7"));
+                assertTrue(text, text.contains("2026-11-04 10:15:00"));
+                assertTrue(text, text.contains("Cliente: Test Customer"));
+                assertTrue(text, text.contains("Dirección del cliente: Calle prueba"));
+                assertTrue(text, text.contains("Producto / lote"));
+                assertTrue(text, text.contains("CUFE simulado: " + cufe));
+            }
         } finally {
             Files.deleteIfExists(pdf);
             Files.deleteIfExists(qr);
@@ -50,6 +59,8 @@ public class InvoiceFileServiceTest {
                 new BigDecimal("100.00"), new BigDecimal("119.00"));
         return new SaleReceipt(1, "SALE-TEST", invoiceNumber, cufe, "Test Customer",
                 "TEST-1", List.of(line), new BigDecimal("100.00"), BigDecimal.ZERO,
-                new BigDecimal("19.00"), new BigDecimal("119.00"), null, null);
+                new BigDecimal("19.00"), new BigDecimal("119.00"), null, null,
+                new frescuratotal.erp.sales.model.CompanyInfo("Frescura Total S.A.S.", "900123456-7", "Bogotá", "123", "prueba@example.invalid"),
+                java.time.LocalDateTime.of(2026,11,4,10,15), "Calle prueba");
     }
 }
