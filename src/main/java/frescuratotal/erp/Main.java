@@ -1,5 +1,6 @@
 package frescuratotal.erp;
 
+import frescuratotal.erp.inventory.model.dao.InventoryLotSaleValidator;
 import frescuratotal.erp.inventory.view.InventoryConsoleView;
 import frescuratotal.erp.logistics.controller.LogisticsController;
 import frescuratotal.erp.logistics.repository.JdbcDeliveryRouteRepository;
@@ -7,6 +8,8 @@ import frescuratotal.erp.logistics.repository.JdbcDispatchOrderRepository;
 import frescuratotal.erp.logistics.repository.JdbcDriverRepository;
 import frescuratotal.erp.logistics.repository.JdbcVehicleRepository;
 import frescuratotal.erp.logistics.view.LogisticsView;
+import frescuratotal.erp.sales.SalesModuleFactory;
+import frescuratotal.erp.sales.controller.SalesController;
 import frescuratotal.erp.suppliers.controller.SupplierController;
 import frescuratotal.erp.suppliers.repository.JdbcPurchaseHistoryRepository;
 import frescuratotal.erp.suppliers.repository.JdbcSupplierRepository;
@@ -30,6 +33,8 @@ public class Main {
                 new LogisticsController(new JdbcVehicleRepository(), new JdbcDriverRepository(),
                         new JdbcDispatchOrderRepository(), new JdbcDeliveryRouteRepository()),
                 scanner, "logistica");
+        // Sales checks with inventory whether a lot can be sold, through the adapter.
+        SalesController salesController = SalesModuleFactory.create(scanner, new InventoryLotSaleValidator());
 
         boolean exit = false;
         while (!exit) {
@@ -37,6 +42,7 @@ public class Main {
             System.out.println("1. Inventario y calidad");
             System.out.println("2. Proveedores");
             System.out.println("3. Logística");
+            System.out.println("4. Ventas y facturación");
             System.out.println("0. Salir");
             System.out.print("Opción: ");
             String option = scanner.nextLine().trim();
@@ -46,6 +52,8 @@ public class Main {
                 supplierView.run();
             } else if (option.equals("3")) {
                 logisticsView.run();
+            } else if (option.equals("4")) {
+                salesController.start();
             } else if (option.equals("0")) {
                 exit = true;
             } else {
