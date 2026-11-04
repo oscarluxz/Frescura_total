@@ -110,4 +110,10 @@ public class CustomerView {
         }
     }
     
+    public boolean confirmDelete() {
+        System.out.print("Are you sure you want to delete this customer? (Y/N): ");
+        String answer = scan.nextLine();
+        return answer.equalsIgnoreCase("Y");
+    }
+    
 }

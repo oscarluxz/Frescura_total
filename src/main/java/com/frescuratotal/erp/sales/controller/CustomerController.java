@@ -31,7 +31,7 @@ public class CustomerController {
             
             switch (option) {
                 case 0:
-                    System.out.println("Returning to the previous menu.");
+                    customerView.showMessage("Returning to the previous menu.");
                     break;
                 case 1: {
                     try {
@@ -66,15 +66,20 @@ public class CustomerController {
                    break;
                 case 4:
                     try {
-                       int customerId = customerView.readCustomerId();
-                       customerService.deleteCustomer(customerId);
-                       customerView.showMessage("Customer deleted successfully.");
-                   } catch (IllegalArgumentException | IllegalStateException e) {
-                       customerView.showMessage("Could not delete customer: " + e.getMessage());
-                   }
-                   break;
+                        int customerId = customerView.readCustomerId();
+
+                        if (customerView.confirmDelete()) {
+                            customerService.deleteCustomer(customerId);
+                            customerView.showMessage("Customer deleted successfully.");
+                        } else {
+                            customerView.showMessage("Customer deletion cancelled.");
+                        }
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        customerView.showMessage("Could not delete customer: " + e.getMessage());
+                    }
+                    break;
                 default:
-                    System.out.println("Invalid menu option.");
+                    customerView.showMessage("Invalid menu option.");
                     break;
             }
         }
