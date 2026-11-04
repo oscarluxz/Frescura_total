@@ -81,7 +81,8 @@ src/main/java/frescuratotal/erp/
 docs/
 ├── database.sql             // DDL y datos de prueba
 ├── diagrama_er.png          // Diagrama entidad-relación
-├── diagrama_clases.png      // Diagrama de clases UML
+├── diagrama_clases.png      // Diagrama de clases UML del proyecto completo
+├── diagrama_clases_*.png    // Detalle por módulo (inventario, proveedores, logística, ventas)
 ├── patrones_proveedores.md  // Patrones del módulo de proveedores
 └── patrones_logistica.md    // Patrones del módulo de logística
 ```
