@@ -41,7 +41,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             
         }  catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Customer insert failed.", e);
-            throw new IllegalStateException("Could not save customer", e);
+            throw new IllegalStateException("No se pudo guardar el cliente", e);
         }
     }
 
@@ -102,7 +102,7 @@ public class CustomerRepositoryImpl implements CustomerRepository {
             
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Customer list query failed.", e);
-            throw new IllegalStateException("Could not retrieve customers", e);
+            throw new IllegalStateException("No se pudieron consultar los clientes", e);
         }
         return customers;
         

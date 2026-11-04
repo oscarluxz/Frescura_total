@@ -36,7 +36,7 @@ public class SalesRepositoryImpl implements SalesRepository {
 
     public SalesRepositoryImpl(LotSaleValidator lotSaleValidator, InvoiceFileService invoiceFileService) {
         if (lotSaleValidator == null || invoiceFileService == null) {
-            throw new IllegalArgumentException("Lot validator and invoice file service are required.");
+            throw new IllegalArgumentException("Se requieren el validador de lotes y el servicio de archivos de factura.");
         }
         this.lotSaleValidator = lotSaleValidator;
         this.invoiceFileService = invoiceFileService;
@@ -63,7 +63,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             }
             return products;
         } catch (SQLException e) {
-            throw new IllegalStateException("Could not list products available for sale.", e);
+            throw new IllegalStateException("No se pudieron listar los productos disponibles para la venta.", e);
         }
     }
 
@@ -116,7 +116,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             if (e instanceof IllegalArgumentException) {
                 throw (IllegalArgumentException) e;
             }
-            throw new IllegalStateException("Could not register sale: " + e.getMessage(), e);
+            throw new IllegalStateException("No se pudo registrar la venta: " + e.getMessage(), e);
         }
 
         LOGGER.info("Registered sale " + completeReceipt.saleNumber()
@@ -139,7 +139,7 @@ public class SalesRepositoryImpl implements SalesRepository {
                                 line.tax(), line.gross(), line.lineTotal()))
                         .forEach(allocations::add);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Insufficient sellable stock for product ID "
+                throw new IllegalArgumentException("Existencias vendibles insuficientes para el producto ID "
                         + item.productId() + ". " + e.getMessage(), e);
             }
         }
@@ -173,7 +173,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setInt(1, customerId);
             try (ResultSet result = statement.executeQuery()) {
                 if (!result.next()) {
-                    throw new IllegalArgumentException("Customer not found: " + customerId);
+                    throw new IllegalArgumentException("Cliente no encontrado: " + customerId);
                 }
                 return new CustomerRow(result.getString("nombre"), result.getString("documento"));
             }
@@ -185,7 +185,7 @@ public class SalesRepositoryImpl implements SalesRepository {
                 "SELECT id_estado FROM estados_venta WHERE nombre = 'Registrada'");
              ResultSet result = statement.executeQuery()) {
             if (!result.next()) {
-                throw new SQLException("Missing 'Registrada' sale status in estados_venta.");
+                throw new SQLException("Falta el estado de venta 'Registrada' en estados_venta.");
             }
             return result.getInt("id_estado");
         }
@@ -205,11 +205,11 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setInt(7, statusId);
             statement.setString(8, cashier);
             if (statement.executeUpdate() != 1) {
-                throw new SQLException("Sale header was not inserted.");
+                throw new SQLException("No se insertó el encabezado de la venta.");
             }
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 if (!keys.next()) {
-                    throw new SQLException("Could not obtain the new sale ID.");
+                    throw new SQLException("No se pudo obtener el ID de la nueva venta.");
                 }
                 return keys.getInt(1);
             }
@@ -224,7 +224,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             statement.setInt(2, lotId);
             statement.setBigDecimal(3, quantity);
             if (statement.executeUpdate() != 1) {
-                throw new SQLException("Lot " + lotId + " no longer has enough stock.");
+                throw new SQLException("El lote " + lotId + " ya no tiene existencias suficientes.");
             }
         }
     }
@@ -290,7 +290,7 @@ public class SalesRepositoryImpl implements SalesRepository {
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(payload.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is not available.", e);
+            throw new IllegalStateException("SHA-256 no está disponible.", e);
         }
     }
 

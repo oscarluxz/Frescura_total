@@ -23,57 +23,57 @@ public class CustomerView {
     public CustomerView(Scanner scan) {
         this.scan = scan;
     }
-    
+
     public void showMenu(){
-        System.out.println("=== CUSTOMER MENU ===\n");
-        System.out.println("1. Register customer ");
-        System.out.println("2. List customers ");
-        System.out.println("3. Update customer");
-        System.out.println("4. Delete customer");
-        System.out.println("0. Back");
+        System.out.println("=== MENÚ DE CLIENTES ===\n");
+        System.out.println("1. Registrar cliente");
+        System.out.println("2. Listar clientes");
+        System.out.println("3. Actualizar cliente");
+        System.out.println("4. Eliminar cliente");
+        System.out.println("0. Volver");
     }
-    
+
     public int readOption(){
-        System.out.print("Choose an option: ");
+        System.out.print("Elija una opción: ");
         String input = scan.nextLine();
         try {
             return Integer.parseInt(input);
         } catch (NumberFormatException e) {
-            System.out.println("Invalid option, enter a number of the menu");
+            System.out.println("Opción inválida, ingrese un número del menú");
             return -1;
         }
     }
-    
+
     public Customer readNewCustomer() {
         Customer customer = new Customer();
-        
-        System.out.println("Name: ");
+
+        System.out.print("Nombre: ");
         String name = scan.nextLine();
         customer.setName(name);
-        
-        System.out.print("Document: ");
+
+        System.out.print("Documento: ");
         String document = scan.nextLine();
         customer.setDocument(document);
-        
-        System.out.print("Email: ");
+
+        System.out.print("Correo electrónico: ");
         String email = scan.nextLine();
         customer.setEmail(email);
-        
-        System.out.print("Phone: ");
+
+        System.out.print("Teléfono: ");
         String phone = scan.nextLine();
         customer.setPhone(phone);
-        
-        System.out.print("Address: ");
+
+        System.out.print("Dirección: ");
         String address = scan.nextLine();
         customer.setAddress(address);
-        
+
         CustomerType customerType = null;
 
         while (customerType == null) {
-            System.out.println("Customer type:");
-            System.out.println("1. WHOLESALE");
-            System.out.println("2. RETAIL");
-            System.out.print("Choose a type: ");
+            System.out.println("Tipo de cliente:");
+            System.out.println("1. MAYORISTA");
+            System.out.println("2. MINORISTA");
+            System.out.print("Elija un tipo: ");
 
             String typeInput = scan.nextLine();
 
@@ -81,22 +81,22 @@ public class CustomerView {
                 int typeId = Integer.parseInt(typeInput);
                 customerType = CustomerType.fromDbId(typeId);
             } catch (IllegalArgumentException e) {
-                System.out.println("Invalid type. Enter 1 or 2.");
+                System.out.println("Tipo inválido. Ingrese 1 o 2.");
             }
         }
 
         customer.setCustomerType(customerType);
-        
+
         return customer;
     }
-    
+
     public void showMessage(String message) {
         System.out.println(message);
     }
-    
+
     public void showCustomers(List<Customer> customers) {
         if (customers.isEmpty()) {
-            showMessage("No customers found.");
+            showMessage("No se encontraron clientes.");
             return;
         }
 
@@ -104,24 +104,24 @@ public class CustomerView {
             showMessage(customer.toString());
         }
     }
-    
+
     public int readCustomerId() {
         while (true) {
-            System.out.print("Customer ID: ");
+            System.out.print("ID del cliente: ");
             String input = scan.nextLine();
 
             try {
                 return Integer.parseInt(input);
             } catch (NumberFormatException e) {
-                showMessage("Enter a numeric customer ID.");
+                showMessage("Ingrese un ID de cliente numérico.");
             }
         }
     }
-    
+
     public boolean confirmDelete() {
-        System.out.print("Are you sure you want to delete this customer? (Y/N): ");
+        System.out.print("¿Está seguro de eliminar este cliente? (S/N): ");
         String answer = scan.nextLine();
-        return answer.equalsIgnoreCase("Y");
+        return answer.equalsIgnoreCase("S");
     }
-    
+
 }

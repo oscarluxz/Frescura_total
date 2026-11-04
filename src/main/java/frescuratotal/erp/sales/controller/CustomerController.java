@@ -33,15 +33,15 @@ public class CustomerController {
             
             switch (option) {
                 case 0:
-                    customerView.showMessage("Returning to the previous menu.");
+                    customerView.showMessage("Volviendo al menú anterior.");
                     break;
                 case 1: {
                     try {
                         Customer customer = customerView.readNewCustomer();
                         customerService.registerCustomer(customer);
-                        customerView.showMessage("Customer registered successfully.");
+                        customerView.showMessage("Cliente registrado correctamente.");
                     } catch (IllegalArgumentException | IllegalStateException e){
-                        customerView.showMessage("Could not register customer: " + e.getMessage());
+                        customerView.showMessage("No se pudo registrar el cliente: " + e.getMessage());
                     }
                     break;
                 }
@@ -50,7 +50,7 @@ public class CustomerController {
                         List<Customer> customers = customerService.findAll();
                         customerView.showCustomers(customers);
                     } catch (IllegalStateException e) {
-                        customerView.showMessage("Could not retrieve customers: " + e.getMessage());
+                        customerView.showMessage("No se pudieron consultar los clientes: " + e.getMessage());
                     }
                     break;
                 case 3:
@@ -61,9 +61,9 @@ public class CustomerController {
                        updatedCustomer.setId(customerId);
                        customerService.updateCustomer(updatedCustomer);
 
-                       customerView.showMessage("Customer updated successfully.");
+                       customerView.showMessage("Cliente actualizado correctamente.");
                    } catch  (IllegalArgumentException | IllegalStateException e){
-                       customerView.showMessage("Could not update customer: " + e.getMessage());
+                       customerView.showMessage("No se pudo actualizar el cliente: " + e.getMessage());
                    }
                    break;
                 case 4:
@@ -72,16 +72,16 @@ public class CustomerController {
 
                         if (customerView.confirmDelete()) {
                             customerService.deleteCustomer(customerId);
-                            customerView.showMessage("Customer deleted successfully.");
+                            customerView.showMessage("Cliente eliminado correctamente.");
                         } else {
-                            customerView.showMessage("Customer deletion cancelled.");
+                            customerView.showMessage("Eliminación de cliente cancelada.");
                         }
                     } catch (IllegalArgumentException | IllegalStateException e) {
-                        customerView.showMessage("Could not delete customer: " + e.getMessage());
+                        customerView.showMessage("No se pudo eliminar el cliente: " + e.getMessage());
                     }
                     break;
                 default:
-                    customerView.showMessage("Invalid menu option.");
+                    customerView.showMessage("Opción de menú inválida.");
                     break;
             }
         }

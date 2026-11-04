@@ -16,22 +16,22 @@ public class SalesView {
     }
 
     public void showMenu() {
-        System.out.println("\n=== SALES AND BILLING ===");
-        System.out.println("1. Confirm sale");
-        System.out.println("2. Customer management");
-        System.out.println("0. Back");
+        System.out.println("\n=== VENTAS Y FACTURACIÓN ===");
+        System.out.println("1. Confirmar venta");
+        System.out.println("2. Gestión de clientes");
+        System.out.println("0. Volver");
     }
 
     public int readOption() {
-        return readInt("Choose an option: ");
+        return readInt("Elija una opción: ");
     }
 
     public void showProducts(List<AvailableProduct> products) {
         if (products.isEmpty()) {
-            showMessage("No products with sellable stock were found.");
+            showMessage("No se encontraron productos con existencias vendibles.");
             return;
         }
-        System.out.println("ID | PRODUCT | UNIT | AVAILABLE | STARTING PRICE");
+        System.out.println("ID | PRODUCTO | UNIDAD | DISPONIBLE | PRECIO DESDE");
         for (AvailableProduct product : products) {
             System.out.printf("%d | %s | %s | %s | %s%n", product.id(), product.name(),
                     product.unit(), product.availableQuantity(), product.startingPrice());
@@ -39,31 +39,31 @@ public class SalesView {
     }
 
     public int readCustomerId() {
-        return readPositiveInt("Customer ID: ");
+        return readPositiveInt("ID del cliente: ");
     }
 
     public String readCashier() {
-        System.out.print("Cashier name: ");
+        System.out.print("Nombre del cajero: ");
         return scanner.nextLine().trim();
     }
 
     public boolean confirmRegistration() {
-        System.out.print("Confirm this sale? (Y/N): ");
-        return scanner.nextLine().trim().equalsIgnoreCase("Y");
+        System.out.print("¿Confirmar esta venta? (S/N): ");
+        return scanner.nextLine().trim().equalsIgnoreCase("S");
     }
 
     public List<SaleItem> readSaleItems() {
         List<SaleItem> items = new ArrayList<>();
         while (true) {
-            int productId = readInt("Product ID (0 to finish): ");
+            int productId = readInt("ID del producto (0 para terminar): ");
             if (productId == 0) {
                 return items;
             }
             if (productId < 0) {
-                showMessage("Product ID must be positive.");
+                showMessage("El ID del producto debe ser positivo.");
                 continue;
             }
-            BigDecimal quantity = readDecimal("Quantity: ");
+            BigDecimal quantity = readDecimal("Cantidad: ");
             try {
                 items.add(new SaleItem(productId, quantity));
             } catch (IllegalArgumentException e) {
@@ -73,10 +73,10 @@ public class SalesView {
     }
 
     public void showReceipt(SaleReceipt receipt) {
-        System.out.println("Sale saved: " + receipt.saleNumber());
-        System.out.println("Invoice: " + receipt.invoiceNumber());
+        System.out.println("Venta guardada: " + receipt.saleNumber());
+        System.out.println("Factura: " + receipt.invoiceNumber());
         System.out.println("Subtotal: " + receipt.subtotal());
-        System.out.println("Discount: " + receipt.discount());
+        System.out.println("Descuento: " + receipt.discount());
         System.out.println("IVA (19%): " + receipt.tax());
         System.out.println("Total: " + receipt.total());
         System.out.println("CUFE: " + receipt.cufe());
@@ -94,7 +94,7 @@ public class SalesView {
             if (value > 0) {
                 return value;
             }
-            showMessage("Enter a positive number.");
+            showMessage("Ingrese un número positivo.");
         }
     }
 
@@ -105,7 +105,7 @@ public class SalesView {
             try {
                 return Integer.parseInt(input);
             } catch (NumberFormatException e) {
-                showMessage("Enter a valid whole number.");
+                showMessage("Ingrese un número entero válido.");
             }
         }
     }
@@ -117,7 +117,7 @@ public class SalesView {
             try {
                 return new BigDecimal(input);
             } catch (NumberFormatException e) {
-                showMessage("Enter a valid quantity, for example 2 or 1.50.");
+                showMessage("Ingrese una cantidad válida, por ejemplo 2 o 1.50.");
             }
         }
     }

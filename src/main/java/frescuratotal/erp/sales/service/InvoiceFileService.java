@@ -34,7 +34,7 @@ public class InvoiceFileService {
         } catch (Exception e) {
             deleteIfExists(pdf, e);
             deleteIfExists(qr, e);
-            throw new IllegalStateException("Invoice files could not be created.", e);
+            throw new IllegalStateException("No se pudieron crear los archivos de la factura.", e);
         }
     }
 
@@ -50,7 +50,7 @@ public class InvoiceFileService {
                 Files.deleteIfExists(receipt.qrPath());
             }
         } catch (IOException e) {
-            throw new IllegalStateException("Could not remove invoice files after transaction rollback.", e);
+            throw new IllegalStateException("No se pudieron eliminar los archivos de la factura tras revertir la transacción.", e);
         }
     }
 
@@ -97,7 +97,7 @@ public class InvoiceFileService {
             document.add(new Paragraph(" "));
             document.add(Image.getInstance(qr.toAbsolutePath().toString()));
         } catch (Exception e) {
-            throw new IOException("Could not create invoice PDF.", e);
+            throw new IOException("No se pudo crear el PDF de la factura.", e);
         } finally {
             if (document.isOpen()) {
                 document.close();

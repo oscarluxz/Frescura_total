@@ -6,11 +6,11 @@ import java.math.BigDecimal;
 public record SaleItem(int productId, BigDecimal quantity) {
     public SaleItem {
         if (productId <= 0) {
-            throw new IllegalArgumentException("Product ID must be positive.");
+            throw new IllegalArgumentException("El ID del producto debe ser positivo.");
         }
         if (quantity == null || quantity.signum() <= 0
                 || quantity.stripTrailingZeros().scale() > 2) {
-            throw new IllegalArgumentException("Quantity must be positive and have at most two decimals.");
+            throw new IllegalArgumentException("La cantidad debe ser positiva y tener máximo dos decimales.");
         }
     }
 }

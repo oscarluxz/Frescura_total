@@ -23,13 +23,13 @@ public class CustomerService {
     
     public void registerCustomer(Customer customer) {
         if (customer.getName() == null || customer.getName().isBlank()) {
-            throw new IllegalArgumentException("Name is required");       
+            throw new IllegalArgumentException("El nombre es obligatorio");       
         }
         if (customer.getDocument() == null || customer.getDocument().isBlank()) {
-            throw new IllegalArgumentException("Document is required");
+            throw new IllegalArgumentException("El documento es obligatorio");
         }
         if (customer.getCustomerType() == null) {
-            throw new IllegalArgumentException("Customer type is required");
+            throw new IllegalArgumentException("El tipo de cliente es obligatorio");
         }
         repository.save(customer);
         LOGGER.info("Customer registered.");
@@ -38,7 +38,7 @@ public class CustomerService {
     public Customer findById(int id) {
         Customer customer = repository.findById(id);
         if (customer == null) {
-            throw new IllegalArgumentException("Customer not found: " + id);
+            throw new IllegalArgumentException("Cliente no encontrado: " + id);
         }
         return customer;
     }
@@ -52,13 +52,13 @@ public class CustomerService {
         findById(customer.getId());
         
         if (customer.getName() == null || customer.getName().isBlank()) {
-            throw new IllegalArgumentException("Name is required");       
+            throw new IllegalArgumentException("El nombre es obligatorio");       
         }
         if (customer.getDocument() == null || customer.getDocument().isBlank()) {
-            throw new IllegalArgumentException("Document is required");
+            throw new IllegalArgumentException("El documento es obligatorio");
         }
         if (customer.getCustomerType() == null) {
-            throw new IllegalArgumentException("Customer type is required");
+            throw new IllegalArgumentException("El tipo de cliente es obligatorio");
         }
         repository.update(customer);
         LOGGER.info(() -> "Customer updated. ID=" + customer.getId());
