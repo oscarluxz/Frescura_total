@@ -72,7 +72,8 @@ src/main/java/frescuratotal/erp/
 │   ├── model/         // Supplier, CatalogProduct, PurchaseRecord, SupplierReliability
 │   ├── repository/    // Interfaces y clases JDBC
 │   ├── controller/    // SupplierController
-│   └── view/          // SupplierView
+│   ├── analytics/     // SupplierAnalyticsService: reporte de rendimiento con Stream API
+│   └── view/          // SupplierView, SupplierAnalyticsView
 ├── logistics/
 │   ├── model/         // Vehicle, Driver, DeliveryRoute, RouteStop, DispatchOrder y enums de estado
 │   ├── repository/    // Interfaces y clases JDBC
@@ -117,6 +118,19 @@ El detalle del módulo de ventas está en `docs/README_ventas.md`.
 5. En **3, Logística → 9**, indique el ID mostrado al confirmar la venta para pasar de Registrada a En preparación. El pedido aparece en el panel. Asigne vehículo y conductor a una ruta, inicie el recorrido y confirme la entrega. No es necesario editar estados directamente en SQL.
 
 El CUFE académico se calcula como SHA-256 de `numeroFactura|fechaHoraISO|totalConDosDecimales|NIT`; esa fecha también se guarda en venta y factura. El QR contiene una URL simulada. No se envían documentos a la DIAN ni se afirma una habilitación fiscal real.
+
+### Módulo de Analíticas
+
+El **Reporte de Rendimiento de Proveedores** se abre desde el menú principal con la opción **6, Generar Reporte de Rendimiento de Proveedores**. Su propósito es dar al departamento de compras datos concretos para evaluar a cada proveedor, en lugar de decidir solo por percepción.
+
+El reporte consulta todos los lotes del inventario con su proveedor y su estado, y calcula dos indicadores:
+
+- **Proveedor con mayor volumen de suministro:** suma la cantidad inicial de todos los lotes de cada proveedor y muestra el que más producto ha entregado. Si hay empate, muestra cualquiera de los empatados.
+- **Proveedores con lotes vencidos:** lista, sin nombres repetidos, los proveedores que tienen al menos un lote en estado *Vencido*.
+
+**Cómo ayuda a la toma de decisiones:** el primer indicador identifica a los socios más importantes, con quienes conviene negociar mejores precios y condiciones por volumen. El segundo señala a los proveedores que pueden representar un riesgo para la calidad del inventario, para exigirles mejores fechas de vencimiento o revisar si se sigue comprándoles. Si todavía no hay lotes registrados, el sistema muestra "No hay datos de inventario suficientes para generar estadísticas." en lugar de fallar.
+
+**Decisión técnica:** el SQL vive en `JdbcSupplierLotRepository` (patrón Repository, igual que el resto del módulo) y los dos cálculos están en `SupplierAnalyticsService`, implementados únicamente con la API de Streams (`groupingBy`, `reducing`, `max`, `filter`, `distinct`). El servicio recibe el repositorio por el constructor, por eso se prueba sin base de datos en `SupplierAnalyticsServiceTest`.
 
 ## SQL, datos y diagramas
 
