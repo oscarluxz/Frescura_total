@@ -10,9 +10,12 @@ import frescuratotal.erp.logistics.repository.JdbcVehicleRepository;
 import frescuratotal.erp.logistics.view.LogisticsView;
 import frescuratotal.erp.sales.SalesModuleFactory;
 import frescuratotal.erp.sales.controller.SalesController;
+import frescuratotal.erp.suppliers.analytics.SupplierAnalyticsService;
 import frescuratotal.erp.suppliers.controller.SupplierController;
 import frescuratotal.erp.suppliers.repository.JdbcPurchaseHistoryRepository;
+import frescuratotal.erp.suppliers.repository.JdbcSupplierLotRepository;
 import frescuratotal.erp.suppliers.repository.JdbcSupplierRepository;
+import frescuratotal.erp.suppliers.view.SupplierAnalyticsView;
 import frescuratotal.erp.suppliers.view.SupplierView;
 
 import java.util.Scanner;
@@ -39,6 +42,8 @@ public class Main {
         SupplierView supplierView = new SupplierView(
                 new SupplierController(new JdbcSupplierRepository(), new JdbcPurchaseHistoryRepository()),
                 scanner);
+        SupplierAnalyticsView analyticsView = new SupplierAnalyticsView(
+                new SupplierAnalyticsService(new JdbcSupplierLotRepository()));
         LogisticsView logisticsView = new LogisticsView(
                 new LogisticsController(new JdbcVehicleRepository(), new JdbcDriverRepository(),
                         new JdbcDispatchOrderRepository(), new JdbcDeliveryRouteRepository()),
@@ -56,6 +61,7 @@ public class Main {
             System.out.println("3. Logística");
             System.out.println("4. Ventas y facturación");
             System.out.println("5. Cambiar rol de demostración (actual: " + session.getRole().getLabel() + ")");
+            System.out.println("6. Generar Reporte de Rendimiento de Proveedores");
             System.out.println("0. Salir");
             System.out.print("Opción: ");
             if (!scanner.hasNextLine()) { break; }
@@ -75,6 +81,8 @@ public class Main {
                 if (role.equals("1") || role.equals("2")) {
                     session.setRole(role.equals("2") ? frescuratotal.erp.common.UserSession.Role.INSPECTOR : frescuratotal.erp.common.UserSession.Role.OPERATOR);
                 } else { System.out.println("Rol inválido; se conserva el rol anterior."); }
+            } else if (option.equals("6")) {
+                analyticsView.run();
             } else if (option.equals("0")) {
                 exit = true;
             } else {
